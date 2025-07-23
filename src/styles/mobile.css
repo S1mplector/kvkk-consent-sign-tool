@@ -1,0 +1,202 @@
+/* Mobile-first responsive styles */
+
+/* Base mobile styles (already optimized in main.css) */
+
+/* Small phones (320px and up) */
+@media (max-width: 375px) {
+    .header {
+        padding: 15px;
+    }
+    
+    .logo {
+        max-height: 50px;
+        max-width: 180px;
+    }
+    
+    .main-content {
+        padding: 15px;
+        gap: 20px;
+    }
+    
+    .consent-section {
+        padding: 20px;
+    }
+    
+    .submit-btn {
+        min-width: 100%;
+        padding: 12px 20px;
+    }
+    
+    .nav-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+}
+
+/* Medium phones (376px to 414px) */
+@media (min-width: 376px) and (max-width: 414px) {
+    .pdf-controls {
+        padding: 18px;
+    }
+    
+    .consent-section {
+        padding: 25px;
+    }
+}
+
+/* Large phones and small tablets (415px to 768px) */
+@media (min-width: 415px) and (max-width: 768px) {
+    .app-container {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    
+    .main-content {
+        padding: 25px;
+    }
+    
+    .logo {
+        max-height: 70px;
+        max-width: 250px;
+    }
+}
+
+/* Tablets (769px and up) */
+@media (min-width: 769px) {
+    .app-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .main-content {
+        padding: 30px;
+        gap: 40px;
+    }
+    
+    .header {
+        padding: 25px;
+    }
+    
+    .logo {
+        max-height: 80px;
+        max-width: 300px;
+    }
+    
+    .pdf-viewer-container {
+        max-width: 100%;
+    }
+    
+    .consent-section {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 30px;
+    }
+    
+    .submit-btn {
+        min-width: 250px;
+    }
+}
+
+/* Touch-specific styles */
+@media (hover: none) and (pointer: coarse) {
+    /* Increase touch targets for mobile */
+    .nav-btn {
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    .checkbox {
+        min-width: 24px;
+        min-height: 24px;
+    }
+    
+    .checkbox-label {
+        padding: 10px;
+        margin: -10px;
+    }
+    
+    .submit-btn {
+        min-height: 48px;
+    }
+}
+
+/* Landscape orientation adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+    .header {
+        padding: 10px 20px;
+    }
+    
+    .logo {
+        max-height: 40px;
+    }
+    
+    .main-content {
+        padding: 15px 20px;
+        gap: 20px;
+    }
+    
+    .pdf-controls {
+        padding: 10px;
+    }
+    
+    .consent-section {
+        padding: 15px 25px;
+    }
+}
+
+/* Safe area insets for devices with notches */
+@supports (padding: max(0px)) {
+    .header {
+        padding-left: max(20px, env(safe-area-inset-left));
+        padding-right: max(20px, env(safe-area-inset-right));
+        padding-top: max(20px, env(safe-area-inset-top));
+    }
+    
+    .main-content {
+        padding-left: max(20px, env(safe-area-inset-left));
+        padding-right: max(20px, env(safe-area-inset-right));
+        padding-bottom: max(20px, env(safe-area-inset-bottom));
+    }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #1a1a1a;
+        color: #ffffff;
+    }
+    
+    .header,
+    .pdf-viewer-container,
+    .consent-section {
+        background: #2d2d2d;
+        color: #ffffff;
+    }
+    
+    .pdf-controls {
+        background: #1a1a1a;
+        border-top-color: #404040;
+    }
+    
+    .page-info {
+        color: #cccccc;
+    }
+    
+    .checkbox-label {
+        color: #cccccc;
+    }
+}
+
+/* Print styles (hide interactive elements) */
+@media print {
+    .pdf-controls,
+    .consent-section {
+        display: none;
+    }
+    
+    .pdf-viewer-container {
+        box-shadow: none;
+        border-radius: 0;
+    }
+}

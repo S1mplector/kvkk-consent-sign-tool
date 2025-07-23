@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KVKK Onay Formu</title>
+    <link rel="stylesheet" href="src/styles/main.css">
+    <link rel="stylesheet" href="src/styles/components.css">
+    <link rel="stylesheet" href="src/styles/mobile.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header with Logo -->
+        <header class="header">
+            <img src="src/resources/assets/logo.png" alt="Logo" class="logo">
+        </header>
+
+        <!-- PDF Viewer Container -->
+        <main class="main-content">
+            <div class="pdf-viewer-container">
+                <div class="pdf-viewer" id="pdfViewer">
+                    <canvas id="pdfCanvas"></canvas>
+                </div>
+                
+                <!-- Navigation Controls -->
+                <div class="pdf-controls">
+                    <button id="prevPage" class="nav-btn" disabled>‹</button>
+                    <span class="page-info">
+                        <span id="currentPage">1</span> / <span id="totalPages">1</span>
+                    </span>
+                    <button id="nextPage" class="nav-btn">›</button>
+                </div>
+            </div>
+
+            <!-- Consent Section -->
+            <section class="consent-section">
+                <div class="consent-checkbox">
+                    <input type="checkbox" id="consentCheck" class="checkbox">
+                    <label for="consentCheck" class="checkbox-label">
+                        Okudum, anlıyorum.
+                    </label>
+                </div>
+                
+                <button id="submitBtn" class="submit-btn" disabled>
+                    Onayla ve Gönder
+                </button>
+            </section>
+        </main>
+    </div>
+
+    <!-- PDF.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="src/js/app.js"></script>
+</body>
+</html>

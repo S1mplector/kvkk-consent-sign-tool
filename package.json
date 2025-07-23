@@ -1,0 +1,29 @@
+{
+  "name": "kvkk-consent-tool",
+  "version": "1.0.0",
+  "description": "A mobile-first web utility for KVKK consent form signing",
+  "main": "index.html",
+  "scripts": {
+    "start": "python -m http.server 8000",
+    "dev": "python -m http.server 8000",
+    "serve": "python -m http.server 8000"
+  },
+  "keywords": [
+    "kvkk",
+    "consent",
+    "pdf-viewer",
+    "mobile-first",
+    "web-utility"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

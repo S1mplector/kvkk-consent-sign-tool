@@ -2,10 +2,10 @@
 
 /* Base mobile styles (already optimized in main.css) */
 
-/* Small phones (320px and up) */
+/* Small phones (320px and up) - Therapeutic adjustments */
 @media (max-width: 375px) {
     .header {
-        padding: 15px;
+        padding: 20px 15px;
     }
     
     .logo {
@@ -15,22 +15,36 @@
     
     .main-content {
         padding: 15px;
-        gap: 20px;
+        gap: 25px;
     }
     
     .consent-section {
-        padding: 20px;
+        padding: 25px 20px;
+    }
+    
+    .consent-checkbox {
+        padding: 18px;
+    }
+    
+    .checkbox-label {
+        font-size: 16px;
     }
     
     .submit-btn {
         min-width: 100%;
-        padding: 12px 20px;
+        padding: 16px 20px;
+        font-size: 16px;
     }
     
     .nav-btn {
-        width: 35px;
-        height: 35px;
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+    }
+    
+    .page-info {
         font-size: 16px;
+        padding: 10px 16px;
     }
 }
 

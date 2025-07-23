@@ -1,0 +1,173 @@
+/* Therapeutic Animation Enhancements */
+
+/* Gentle page entrance animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Smooth gradient background animation */
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* Breathing animation for loading states */
+@keyframes breathe {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+}
+
+/* Gentle pulse for interactive elements */
+@keyframes gentlePulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(107, 155, 210, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(107, 155, 210, 0);
+    }
+}
+
+/* Page load animations */
+.app-container {
+    animation: fadeInUp 0.8s ease-out;
+}
+
+.header {
+    animation: fadeInUp 0.6s ease-out 0.1s both;
+}
+
+.pdf-viewer-container {
+    animation: fadeInScale 0.7s ease-out 0.2s both;
+}
+
+.consent-section {
+    animation: fadeInUp 0.6s ease-out 0.3s both;
+}
+
+/* Interactive element animations */
+.checkbox:checked {
+    animation: gentlePulse 0.6s ease-out;
+}
+
+.submit-btn:not(:disabled):hover {
+    animation: breathe 2s ease-in-out infinite;
+}
+
+/* PDF page transition */
+.pdf-page-enter {
+    animation: fadeInScale 0.4s ease-out;
+}
+
+/* Loading state animation */
+.pdf-loading-overlay {
+    animation: fadeInScale 0.3s ease-out;
+}
+
+/* Message animations */
+.success-message,
+.error-message {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* Hover effects for better feedback */
+.nav-btn:hover:not(:disabled) {
+    animation: gentlePulse 1.5s ease-out infinite;
+}
+
+.consent-checkbox:hover {
+    animation: breathe 3s ease-in-out infinite;
+}
+
+/* Accessibility: Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    body {
+        animation: none !important;
+        background: linear-gradient(135deg, #4a5568 0%, #718096 100%);
+    }
+    
+    .submit-btn:not(:disabled):hover,
+    .nav-btn:hover:not(:disabled),
+    .consent-checkbox:hover {
+        animation: none;
+    }
+}
+
+/* Focus animations for keyboard users */
+.nav-btn:focus,
+.submit-btn:focus,
+.checkbox:focus {
+    animation: gentlePulse 1s ease-out;
+}
+
+/* Smooth state transitions */
+.nav-btn:disabled {
+    transition: all 0.5s ease-out;
+}
+
+.submit-btn:disabled {
+    transition: all 0.5s ease-out;
+}
+
+/* PDF canvas smooth transitions */
+#pdfCanvas {
+    transition: opacity 0.3s ease-in-out;
+}
+
+#pdfCanvas.loading {
+    opacity: 0.7;
+}
+
+/* Gentle hover states for better UX */
+.logo:hover {
+    animation: breathe 4s ease-in-out infinite;
+}
+
+/* Page info gentle highlight */
+.page-info {
+    transition: all 0.3s ease-out;
+}
+
+.page-info:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(107, 155, 210, 0.2);
+}

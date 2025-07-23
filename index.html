@@ -6,13 +6,16 @@
     <title>KVKK Onay Formu</title>
     <link rel="stylesheet" href="src/styles/main.css">
     <link rel="stylesheet" href="src/styles/components.css">
+    <link rel="stylesheet" href="src/styles/therapeutic.css">
+    <link rel="stylesheet" href="src/styles/animations.css">
     <link rel="stylesheet" href="src/styles/mobile.css">
 </head>
 <body>
     <div class="app-container">
         <!-- Header with Logo -->
-        <header class="header">
-            <img src="src/resources/assets/logo.png" alt="Logo" class="logo">
+        <header class="header" role="banner">
+            <img src="src/resources/assets/logo.png" alt="Psikolog Logo" class="logo">
+            <h1 class="visually-hidden">KVKK Kişisel Verilerin Korunması Onay Formu</h1>
         </header>
 
         <!-- PDF Viewer Container -->
@@ -33,17 +36,30 @@
             </div>
 
             <!-- Consent Section -->
-            <section class="consent-section">
+            <section class="consent-section" role="form" aria-labelledby="consent-heading">
+                <h2 id="consent-heading" class="visually-hidden">Onay Bölümü</h2>
+                
                 <div class="consent-checkbox">
-                    <input type="checkbox" id="consentCheck" class="checkbox">
+                    <input type="checkbox" id="consentCheck" class="checkbox" 
+                           aria-describedby="consent-description" 
+                           aria-required="true">
                     <label for="consentCheck" class="checkbox-label">
+                        <span class="consent-icon" aria-hidden="true">📋</span>
                         Okudum, anlıyorum.
                     </label>
+                    <div id="consent-description" class="visually-hidden">
+                        KVKK formunu okuduğunuzu ve anladığınızı onaylamak için bu kutuyu işaretleyin
+                    </div>
                 </div>
                 
-                <button id="submitBtn" class="submit-btn" disabled>
+                <button id="submitBtn" class="submit-btn" disabled 
+                        aria-describedby="submit-description">
+                    <span class="submit-icon" aria-hidden="true">✉️</span>
                     Onayla ve Gönder
                 </button>
+                <div id="submit-description" class="visually-hidden">
+                    Onayınızı göndermek için önce yukarıdaki kutuyu işaretlemeniz gerekiyor
+                </div>
             </section>
         </main>
     </div>

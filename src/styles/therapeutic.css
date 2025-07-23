@@ -1,0 +1,376 @@
+/* Therapeutic UX Enhancements for Psychotherapy Clients */
+
+/* Calming Color Palette */
+:root {
+    --therapeutic-primary: #6b9bd2;      /* Soft blue - calming and trustworthy */
+    --therapeutic-secondary: #8fbc8f;     /* Sage green - peaceful and healing */
+    --therapeutic-accent: #dda0dd;        /* Soft lavender - soothing */
+    --therapeutic-neutral: #f5f7fa;       /* Very light blue-gray - gentle background */
+    --therapeutic-text: #4a5568;          /* Soft dark gray - easy on eyes */
+    --therapeutic-text-light: #718096;    /* Medium gray for secondary text */
+    --therapeutic-success: #68d391;       /* Gentle green for positive actions */
+    --therapeutic-warning: #f6ad55;       /* Warm orange for attention */
+    --therapeutic-surface: #ffffff;       /* Pure white for content areas */
+    --therapeutic-shadow: rgba(107, 155, 210, 0.1); /* Soft blue shadow */
+}
+
+/* Enhanced Typography for Readability */
+body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--therapeutic-text);
+    background: linear-gradient(-45deg, #2a2a2a, #3d3d3d, #525252, #6b6b6b);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+    letter-spacing: 0.3px;
+    min-height: 100vh;
+}
+
+/* Gentle Animations */
+* {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Enhanced Header */
+.header {
+    background: var(--therapeutic-surface);
+    padding: 25px 20px;
+    box-shadow: 0 2px 20px var(--therapeutic-shadow);
+    border-bottom: 3px solid var(--therapeutic-primary);
+}
+
+.logo {
+    filter: drop-shadow(0 2px 8px var(--therapeutic-shadow));
+    transition: transform 0.3s ease;
+}
+
+.logo:hover {
+    transform: scale(1.02);
+}
+
+/* Calming PDF Viewer Container */
+.pdf-viewer-container {
+    background: var(--therapeutic-surface);
+    border-radius: 16px;
+    box-shadow: 0 8px 32px var(--therapeutic-shadow);
+    border: 1px solid rgba(107, 155, 210, 0.2);
+    overflow: hidden;
+    position: relative;
+}
+
+.pdf-viewer {
+    background: linear-gradient(45deg, #fafbfc 0%, #ffffff 100%);
+    min-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#pdfCanvas {
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Gentle Navigation Controls */
+.pdf-controls {
+    background: linear-gradient(135deg, var(--therapeutic-neutral) 0%, #ffffff 100%);
+    border-top: 1px solid rgba(107, 155, 210, 0.2);
+    padding: 20px;
+    gap: 25px;
+}
+
+.nav-btn {
+    background: linear-gradient(135deg, var(--therapeutic-primary) 0%, #5a8bc4 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    width: 48px;
+    height: 48px;
+    font-size: 20px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(107, 155, 210, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.5s;
+}
+
+.nav-btn:hover:not(:disabled)::before {
+    left: 100%;
+}
+
+.nav-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(107, 155, 210, 0.4);
+}
+
+.nav-btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.nav-btn:disabled {
+    background: linear-gradient(135deg, var(--therapeutic-text-light) 0%, #a0aec0 100%);
+    cursor: not-allowed;
+    opacity: 0.6;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.page-info {
+    font-weight: 600;
+    color: var(--therapeutic-text);
+    font-size: 18px;
+    background: var(--therapeutic-surface);
+    padding: 12px 20px;
+    border-radius: 20px;
+    box-shadow: 0 2px 12px var(--therapeutic-shadow);
+    min-width: 80px;
+    text-align: center;
+}
+
+/* Therapeutic Consent Section */
+.consent-section {
+    background: var(--therapeutic-surface);
+    border-radius: 16px;
+    padding: 30px;
+    box-shadow: 0 8px 32px var(--therapeutic-shadow);
+    border: 2px solid rgba(107, 155, 210, 0.1);
+    position: relative;
+}
+
+.consent-checkbox {
+    background: var(--therapeutic-surface);
+    padding: 20px;
+    border-radius: 12px;
+    border: 2px solid rgba(107, 155, 210, 0.2);
+    box-shadow: 0 4px 16px var(--therapeutic-shadow);
+    margin-bottom: 25px;
+    transition: all 0.3s ease;
+}
+
+.consent-checkbox:hover {
+    border-color: var(--therapeutic-primary);
+    box-shadow: 0 6px 20px rgba(107, 155, 210, 0.2);
+}
+
+.checkbox {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    accent-color: var(--therapeutic-primary);
+    transform: scale(1.2);
+}
+
+.checkbox:focus {
+    outline: 3px solid rgba(107, 155, 210, 0.3);
+    outline-offset: 3px;
+}
+
+.checkbox-label {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--therapeutic-text);
+    cursor: pointer;
+    user-select: none;
+    line-height: 1.6;
+}
+
+/* Therapeutic Submit Button */
+.submit-btn {
+    background: linear-gradient(135deg, var(--therapeutic-success) 0%, #48bb78 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 18px 40px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    min-width: 250px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 6px 20px rgba(104, 211, 145, 0.3);
+}
+
+.submit-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left 0.6s;
+}
+
+.submit-btn:hover:not(:disabled)::before {
+    left: 100%;
+}
+
+.submit-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(104, 211, 145, 0.4);
+}
+
+.submit-btn:active:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.submit-btn:disabled {
+    background: linear-gradient(135deg, var(--therapeutic-text-light) 0%, #a0aec0 100%);
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Enhanced Message Styles */
+.success-message {
+    background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+    color: #22543d;
+    border: 2px solid var(--therapeutic-success);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    text-align: center;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(104, 211, 145, 0.2);
+    position: relative;
+}
+
+.success-message::before {
+    content: '✓';
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--therapeutic-success);
+}
+
+.error-message {
+    background: linear-gradient(135deg, #fef5e7 0%, #fed7aa 100%);
+    color: #744210;
+    border: 2px solid var(--therapeutic-warning);
+    border-radius: 12px;
+    padding: 20px;
+    margin-top: 20px;
+    text-align: center;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(246, 173, 85, 0.2);
+    position: relative;
+}
+
+.error-message::before {
+    content: '⚠';
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 20px;
+    color: var(--therapeutic-warning);
+}
+
+/* Loading States with Calming Animation */
+.pdf-loading-overlay {
+    background: rgba(245, 247, 250, 0.95);
+    backdrop-filter: blur(4px);
+}
+
+.loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid rgba(107, 155, 210, 0.2);
+    border-top: 4px solid var(--therapeutic-primary);
+    border-radius: 50%;
+    animation: therapeutic-spin 1.5s linear infinite;
+}
+
+@keyframes therapeutic-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Accessibility Enhancements */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Focus indicators for keyboard navigation */
+.nav-btn:focus,
+.submit-btn:focus {
+    outline: 3px solid rgba(107, 155, 210, 0.5);
+    outline-offset: 3px;
+}
+
+/* Accessibility Enhancements */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Icon styling for better visual feedback */
+.consent-icon,
+.submit-icon {
+    margin-right: 8px;
+    font-size: 1.1em;
+    opacity: 0.8;
+    transition: all 0.3s ease;
+}
+
+.checkbox:checked + .checkbox-label .consent-icon {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.submit-btn:hover:not(:disabled) .submit-icon {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* Enhanced focus states for better accessibility */
+.checkbox:focus + .checkbox-label {
+    outline: 3px solid rgba(107, 155, 210, 0.5);
+    outline-offset: 2px;
+    border-radius: 8px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    :root {
+        --therapeutic-primary: #0066cc;
+        --therapeutic-text: #000000;
+        --therapeutic-surface: #ffffff;
+    }
+    
+    .nav-btn,
+    .submit-btn,
+    .checkbox {
+        border: 2px solid currentColor;
+    }
+    
+    .consent-checkbox {
+        border: 3px solid currentColor;
+    }
+}

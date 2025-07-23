@@ -271,9 +271,62 @@ class KVKKConsentApp {
     }
 }
 
-// Initialize the app when DOM is loaded
+// Splash Screen Handler
+class SplashScreenHandler {
+    constructor() {
+        this.splashScreen = document.getElementById('splashScreen');
+        this.body = document.body;
+        this.init();
+    }
+    
+    init() {
+        // Start the splash sequence
+        this.startSplashSequence();
+    }
+    
+    startSplashSequence() {
+        // Animation completes at ~2 seconds, then persist for 1.5 seconds
+        // Total time: ~3.5 seconds (2s animation + 1.5s persistence)
+        setTimeout(() => {
+            this.transitionToMainApp();
+        }, 3500);
+    }
+    
+    transitionToMainApp() {
+        // Fade out splash screen
+        this.splashScreen.classList.add('fade-out');
+        
+        // Remove splash-active class from body
+        this.body.classList.remove('splash-active');
+        
+        // Remove splash screen from DOM after transition
+        setTimeout(() => {
+            if (this.splashScreen.parentNode) {
+                this.splashScreen.remove();
+            }
+        }, 1000);
+        
+        // Initialize the main app
+        setTimeout(() => {
+            new KVKKConsentApp();
+        }, 500);
+    }
+}
+
+// Initialize the splash screen and app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new KVKKConsentApp();
+    // Check if user prefers reduced motion
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    
+    if (prefersReducedMotion) {
+        // Skip splash screen for users who prefer reduced motion
+        document.body.classList.remove('splash-active');
+        document.getElementById('splashScreen').remove();
+        new KVKKConsentApp();
+    } else {
+        // Show splash screen with full animation
+        new SplashScreenHandler();
+    }
 });
 
 // Service Worker can be added later for offline support

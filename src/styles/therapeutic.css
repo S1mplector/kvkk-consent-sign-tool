@@ -152,15 +152,15 @@ body {
     background: var(--therapeutic-surface);
     padding: 20px;
     border-radius: 12px;
-    border: 2px solid rgba(107, 155, 210, 0.2);
-    box-shadow: 0 4px 16px var(--therapeutic-shadow);
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
     margin-bottom: 25px;
     transition: all 0.3s ease;
 }
 
 .consent-checkbox:hover {
-    border-color: var(--therapeutic-primary);
-    box-shadow: 0 6px 20px rgba(107, 155, 210, 0.2);
+    border-color: #cbd5e0;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
 .checkbox {
@@ -172,14 +172,13 @@ body {
 }
 
 .checkbox:focus {
-    outline: 3px solid rgba(107, 155, 210, 0.3);
-    outline-offset: 3px;
+    outline: none;
 }
 
 .checkbox-label {
     font-size: 18px;
     font-weight: 500;
-    color: var(--therapeutic-text);
+    color: #000000;
     cursor: pointer;
     user-select: none;
     line-height: 1.6;
@@ -247,16 +246,7 @@ body {
     position: relative;
 }
 
-.success-message::before {
-    content: '✓';
-    position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 20px;
-    font-weight: bold;
-    color: var(--therapeutic-success);
-}
+
 
 .error-message {
     background: linear-gradient(135deg, #fef5e7 0%, #fed7aa 100%);
@@ -351,9 +341,7 @@ body {
 
 /* Enhanced focus states for better accessibility */
 .checkbox:focus + .checkbox-label {
-    outline: 3px solid rgba(107, 155, 210, 0.5);
-    outline-offset: 2px;
-    border-radius: 8px;
+    outline: none;
 }
 
 /* High contrast mode support */

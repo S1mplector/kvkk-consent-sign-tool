@@ -1,0 +1,326 @@
+/* Splash Screen with Animated CSS Logo */
+
+/* Splash screen container */
+.splash-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(-45deg, #2a2a2a, #3d3d3d, #525252, #6b6b6b);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 1;
+    transition: opacity 1s ease-out;
+}
+
+.splash-screen.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* CSS Logo Container */
+.css-logo {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    animation: logoAppear 2s ease-out;
+}
+
+/* Outer Circle */
+.logo-circle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 200px;
+    height: 200px;
+    border: 4px solid #8b5cf6;
+    border-radius: 50%;
+    animation: circleGrow 1.5s ease-out;
+}
+
+/* Tree Trunk (Person Body) */
+.tree-trunk {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 35px;
+    background: #8b5cf6;
+    border-radius: 3px;
+    animation: trunkGrow 1s ease-out 0.5s both;
+}
+
+/* Person Head */
+.person-head {
+    position: absolute;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 14px;
+    background: #8b5cf6;
+    border-radius: 50%;
+    animation: headAppear 0.8s ease-out 0.8s both;
+}
+
+/* Tree Branches Container */
+.tree-branches {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 160px;
+    height: 120px;
+}
+
+/* Individual Leaves - More organic shapes */
+.leaf {
+    position: absolute;
+    width: 10px;
+    height: 16px;
+    background: #8b5cf6;
+    border-radius: 60% 20% 60% 20%;
+    opacity: 0;
+    transform: scale(0);
+}
+
+/* Organic leaf arrangement matching original logo */
+.leaf:nth-child(1) { top: 8px; left: 72px; transform: rotate(15deg) scale(0); animation: leafGrow 0.6s ease-out 1.2s both; }
+.leaf:nth-child(2) { top: 12px; left: 58px; transform: rotate(-10deg) scale(0); animation: leafGrow 0.6s ease-out 1.25s both; }
+.leaf:nth-child(3) { top: 10px; left: 86px; transform: rotate(25deg) scale(0); animation: leafGrow 0.6s ease-out 1.3s both; }
+.leaf:nth-child(4) { top: 22px; left: 48px; transform: rotate(-25deg) scale(0); animation: leafGrow 0.6s ease-out 1.35s both; }
+.leaf:nth-child(5) { top: 18px; left: 92px; transform: rotate(35deg) scale(0); animation: leafGrow 0.6s ease-out 1.4s both; }
+.leaf:nth-child(6) { top: 32px; left: 38px; transform: rotate(-35deg) scale(0); animation: leafGrow 0.6s ease-out 1.45s both; }
+.leaf:nth-child(7) { top: 28px; left: 98px; transform: rotate(45deg) scale(0); animation: leafGrow 0.6s ease-out 1.5s both; }
+.leaf:nth-child(8) { top: 42px; left: 32px; transform: rotate(-45deg) scale(0); animation: leafGrow 0.6s ease-out 1.55s both; }
+.leaf:nth-child(9) { top: 38px; left: 104px; transform: rotate(55deg) scale(0); animation: leafGrow 0.6s ease-out 1.6s both; }
+.leaf:nth-child(10) { top: 26px; left: 68px; transform: rotate(5deg) scale(0); animation: leafGrow 0.6s ease-out 1.65s both; }
+.leaf:nth-child(11) { top: 24px; left: 78px; transform: rotate(-5deg) scale(0); animation: leafGrow 0.6s ease-out 1.7s both; }
+.leaf:nth-child(12) { top: 36px; left: 64px; transform: rotate(15deg) scale(0); animation: leafGrow 0.6s ease-out 1.75s both; }
+.leaf:nth-child(13) { top: 34px; left: 82px; transform: rotate(-15deg) scale(0); animation: leafGrow 0.6s ease-out 1.8s both; }
+.leaf:nth-child(14) { top: 46px; left: 58px; transform: rotate(25deg) scale(0); animation: leafGrow 0.6s ease-out 1.85s both; }
+.leaf:nth-child(15) { top: 44px; left: 88px; transform: rotate(-25deg) scale(0); animation: leafGrow 0.6s ease-out 1.9s both; }
+
+/* Raised Arms flowing into branches */
+.tree-arms {
+    position: absolute;
+    bottom: 45px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 30px;
+}
+
+.arm-left,
+.arm-right {
+    position: absolute;
+    width: 28px;
+    height: 3px;
+    background: #8b5cf6;
+    border-radius: 2px;
+    animation: armExtend 0.8s ease-out 1s both;
+}
+
+.arm-left {
+    left: 8px;
+    top: 15px;
+    transform-origin: right center;
+    transform: rotate(-45deg) scaleX(0);
+}
+
+.arm-right {
+    right: 8px;
+    top: 15px;
+    transform-origin: left center;
+    transform: rotate(45deg) scaleX(0);
+}
+
+/* Root system */
+.tree-roots {
+    position: absolute;
+    bottom: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 15px;
+}
+
+.root {
+    position: absolute;
+    height: 2px;
+    background: #8b5cf6;
+    border-radius: 1px;
+    opacity: 0;
+    animation: rootGrow 1s ease-out 2s both;
+}
+
+.root:nth-child(1) {
+    left: 20px;
+    width: 20px;
+    transform: rotate(-15deg);
+}
+
+.root:nth-child(2) {
+    right: 20px;
+    width: 20px;
+    transform: rotate(15deg);
+}
+
+.root:nth-child(3) {
+    left: 35px;
+    width: 15px;
+    transform: rotate(-5deg);
+}
+
+
+
+/* Keyframe Animations */
+@keyframes logoAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes circleGrow {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes trunkGrow {
+    from {
+        height: 0;
+        opacity: 0;
+    }
+    to {
+        height: 40px;
+        opacity: 1;
+    }
+}
+
+@keyframes headAppear {
+    from {
+        transform: translateX(-50%) scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes leafGrow {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes armExtend {
+    from {
+        transform: rotate(-45deg) scaleX(0);
+        opacity: 0;
+    }
+    to {
+        transform: rotate(-45deg) scaleX(1);
+        opacity: 1;
+    }
+}
+
+.arm-right {
+    animation-name: armExtendRight;
+}
+
+@keyframes armExtendRight {
+    from {
+        transform: rotate(45deg) scaleX(0);
+        opacity: 0;
+    }
+    to {
+        transform: rotate(45deg) scaleX(1);
+        opacity: 1;
+    }
+}
+
+@keyframes rootGrow {
+    from {
+        width: 0;
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+
+
+/* Hide main content during splash */
+.splash-active .app-container {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Accessibility: Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .splash-screen,
+    .css-logo,
+    .logo-circle,
+    .tree-trunk,
+    .person-head,
+    .leaf,
+    .arm-left,
+    .arm-right,
+    .root,
+    .splash-text {
+        animation-duration: 0.1s !important;
+        animation-delay: 0s !important;
+    }
+    
+    .splash-screen {
+        animation: none;
+        background: linear-gradient(135deg, #3d3d3d 0%, #525252 100%);
+    }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+    .css-logo {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .logo-circle {
+        width: 150px;
+        height: 150px;
+    }
+    
+    .tree-branches {
+        width: 120px;
+        height: 90px;
+    }
+    
+    .splash-text {
+        font-size: 16px;
+        bottom: 80px;
+    }
+}

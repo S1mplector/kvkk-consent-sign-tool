@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-result {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f0f0f0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #007bff;
+            color: white;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Backend Connection Test</h1>
+    
+    <div>
+        <button onclick="testHealth()">Test Health Endpoint</button>
+        <button onclick="testCORS()">Test CORS</button>
+        <button onclick="testSubmit()">Test Form Submit</button>
+    </div>
+    
+    <div id="results"></div>
+
+    <script>
+        const BACKEND_URL = 'http://localhost:3000';
+        const resultsDiv = document.getElementById('results');
+
+        function addResult(title, success, data) {
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${success ? 'success' : 'error'}`;
+            resultDiv.innerHTML = `
+                <h3>${title}</h3>
+                <pre>${JSON.stringify(data, null, 2)}</pre>
+            `;
+            resultsDiv.appendChild(resultDiv);
+        }
+
+        async function testHealth() {
+            resultsDiv.innerHTML = '';
+            try {
+                console.log('Testing health endpoint...');
+                const response = await fetch(`${BACKEND_URL}/api/health`);
+                const data = await response.json();
+                addResult('Health Check', response.ok, {
+                    status: response.status,
+                    statusText: response.statusText,
+                    data: data
+                });
+            } catch (error) {
+                addResult('Health Check Failed', false, {
+                    error: error.message,
+                    type: error.constructor.name,
+                    stack: error.stack
+                });
+            }
+        }
+
+        async function testCORS() {
+            resultsDiv.innerHTML = '';
+            try {
+                console.log('Testing CORS...');
+                const response = await fetch(`${BACKEND_URL}/api/test-cors`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ test: true })
+                });
+                const data = await response.json();
+                addResult('CORS Test', response.ok, {
+                    status: response.status,
+                    headers: Object.fromEntries(response.headers.entries()),
+                    data: data
+                });
+            } catch (error) {
+                addResult('CORS Test Failed', false, {
+                    error: error.message,
+                    type: error.constructor.name,
+                    suggestion: 'Make sure backend is running on port 3000'
+                });
+            }
+        }
+
+        async function testSubmit() {
+            resultsDiv.innerHTML = '';
+            try {
+                console.log('Testing form submit endpoint...');
+                
+                // Create test data
+                const formData = {
+                    patientName: 'Test Patient',
+                    email: 'test@example.com',
+                    role: 'patient',
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Create a test PDF blob
+                const pdfContent = new Uint8Array([0x25, 0x50, 0x44, 0x46]); // PDF header
+                const pdfBlob = new Blob([pdfContent], { type: 'application/pdf' });
+                
+                // Create FormData
+                const formDataObj = new FormData();
+                formDataObj.append('formData', JSON.stringify(formData));
+                formDataObj.append('pdf', pdfBlob, 'test.pdf');
+                
+                const response = await fetch(`${BACKEND_URL}/api/consent/submit`, {
+                    method: 'POST',
+                    body: formDataObj
+                });
+                
+                const data = await response.json();
+                addResult('Form Submit Test', response.ok, {
+                    status: response.status,
+                    data: data
+                });
+            } catch (error) {
+                addResult('Form Submit Test Failed', false, {
+                    error: error.message,
+                    type: error.constructor.name
+                });
+            }
+        }
+
+        // Test health on load
+        window.onload = () => {
+            testHealth();
+        };
+    </script>
+</body>
+</html>

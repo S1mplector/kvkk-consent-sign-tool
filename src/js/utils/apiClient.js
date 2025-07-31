@@ -3,7 +3,7 @@
  * Handles communication with the backend server
  */
 class APIClient {
-    constructor(baseURL = 'http://localhost:3001') {
+    constructor(baseURL = 'http://localhost:3000') {
         this.baseURL = baseURL;
         this.timeout = 30000; // 30 seconds
     }
@@ -13,6 +13,14 @@ class APIClient {
      */
     async makeRequest(endpoint, options = {}) {
         const url = `${this.baseURL}${endpoint}`;
+        
+        console.log('🌐 Making request to:', url);
+        console.log('📦 Request options:', {
+            method: options.method || 'GET',
+            headers: options.headers,
+            hasBody: !!options.body,
+            bodyType: options.body ? options.body.constructor.name : 'none'
+        });
         
         const defaultOptions = {
             headers: {
@@ -29,16 +37,25 @@ class APIClient {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
+            console.log('🚀 Sending request...');
             const response = await fetch(url, {
                 ...requestOptions,
                 signal: controller.signal
             });
 
             clearTimeout(timeoutId);
+            
+            console.log('📨 Response received:', {
+                status: response.status,
+                statusText: response.statusText,
+                ok: response.ok,
+                headers: Object.fromEntries(response.headers.entries())
+            });
 
             // Handle HTTP errors
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
+                console.error('❌ HTTP Error:', errorData);
                 throw new APIError(
                     errorData.message || `HTTP ${response.status}: ${response.statusText}`,
                     response.status,
@@ -55,6 +72,14 @@ class APIClient {
             }
 
         } catch (error) {
+            console.error('🔥 Request failed:', error);
+            console.error('Error type:', error.constructor.name);
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
+            
             if (error.name === 'AbortError') {
                 throw new APIError('İstek zaman aşımına uğradı', 408);
             }
@@ -77,6 +102,10 @@ class APIClient {
      */
     async submitConsent(formData, pdfBlob) {
         try {
+            console.log('📤 Submitting consent form to:', `${this.baseURL}/api/consent/submit`);
+            console.log('📋 Form data:', formData);
+            console.log('📄 PDF blob size:', pdfBlob.size, 'bytes');
+            
             // Create FormData for file upload
             const formDataObj = new FormData();
             
@@ -87,12 +116,14 @@ class APIClient {
             const filename = this.generateFilename(formData);
             formDataObj.append('pdf', pdfBlob, filename);
 
+            console.log('🔄 Making request...');
             const response = await this.makeRequest('/api/consent/submit', {
                 method: 'POST',
                 body: formDataObj,
                 headers: {} // Remove Content-Type to let browser set it with boundary
             });
 
+            console.log('✅ Response received:', response);
             return {
                 success: true,
                 data: response,
@@ -100,7 +131,12 @@ class APIClient {
             };
 
         } catch (error) {
-            console.error('Consent submission error:', error);
+            console.error('❌ Consent submission error:', error);
+            console.error('Error details:', {
+                message: error.message,
+                statusCode: error.statusCode,
+                stack: error.stack
+            });
             return {
                 success: false,
                 error: error.message,

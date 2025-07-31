@@ -110,7 +110,21 @@ app.get('/api/health', (req, res) => {
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         environment: process.env.NODE_ENV || 'development',
-        version: '1.0.0'
+        version: '1.0.0',
+        emailService: emailService.isConfigured() ? 'Ready' : 'Not configured',
+        cors: corsOptions.origin
+    });
+});
+
+// Test CORS endpoint
+app.options('/api/test-cors', cors(corsOptions));
+app.post('/api/test-cors', cors(corsOptions), (req, res) => {
+    console.log('🔍 CORS test request received from:', req.headers.origin);
+    res.json({
+        success: true,
+        origin: req.headers.origin,
+        method: req.method,
+        timestamp: new Date().toISOString()
     });
 });
 

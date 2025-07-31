@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Coordinate Finder</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .controls button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background: #007bff;
+            color: white;
+        }
+        .controls button:hover {
+            background: #0056b3;
+        }
+        .info {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e3f2fd;
+            border-radius: 5px;
+            font-family: monospace;
+        }
+        #pdfContainer {
+            position: relative;
+            border: 2px solid #ddd;
+            display: inline-block;
+            cursor: crosshair;
+        }
+        #pdfCanvas {
+            display: block;
+        }
+        .marker {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: red;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+        }
+        .coordinate-list {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .coordinate-item {
+            margin: 5px 0;
+            padding: 8px;
+            background: white;
+            border-radius: 3px;
+            font-family: monospace;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .field-selector {
+            margin: 10px 0;
+        }
+        .field-selector select {
+            padding: 8px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        .instructions {
+            margin: 20px 0;
+            padding: 15px;
+            background: #fff3cd;
+            border-radius: 5px;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PDF Coordinate Finder for KVKK Form</h1>
+        
+        <div class="instructions">
+            <h3>Instructions:</h3>
+            <ol>
+                <li>Navigate to the last page of the PDF (Page 7)</li>
+                <li>Select the field type from the dropdown</li>
+                <li>Click on the PDF where you want to place that field</li>
+                <li>The coordinates will be recorded and shown below</li>
+                <li>Copy the final coordinates to update the PDF processor</li>
+            </ol>
+        </div>
+
+        <div class="controls">
+            <button onclick="previousPage()">← Previous Page</button>
+            <button onclick="nextPage()">Next Page →</button>
+            <button onclick="goToLastPage()">Go to Last Page</button>
+            <span style="margin-left: 20px;">Page: <span id="pageNum">1</span> / <span id="pageCount">1</span></span>
+            
+            <div class="field-selector">
+                <label>Select field to mark:</label>
+                <select id="fieldType">
+                    <option value="consentText">Consent Text (Okudum anladım...)</option>
+                    <option value="patientName">Patient Name (AD/SOYAD)</option>
+                    <option value="patientSignature">Patient Signature (İMZA)</option>
+                    <option value="guardianName">Guardian Name</option>
+                    <option value="guardianRelationship">Guardian Relationship</option>
+                    <option value="guardianDate">Guardian Date</option>
+                    <option value="guardianSignature">Guardian Signature</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="info">
+            <strong>Current Mouse Position:</strong> X: <span id="mouseX">0</span>, Y: <span id="mouseY">0</span> (PDF coordinates)
+        </div>
+
+        <div id="pdfContainer">
+            <canvas id="pdfCanvas"></canvas>
+        </div>
+
+        <div class="coordinate-list">
+            <h3>Recorded Coordinates:</h3>
+            <div id="coordinates"></div>
+            <button onclick="copyCoordinates()" style="margin-top: 10px;">Copy All Coordinates</button>
+        </div>
+    </div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        let pdfDoc = null;
+        let pageNum = 1;
+        let pageRendering = false;
+        let pageNumPending = null;
+        let scale = 1.5;
+        let canvas = document.getElementById('pdfCanvas');
+        let ctx = canvas.getContext('2d');
+        let coordinates = {};
+
+        // Load the PDF
+        pdfjsLib.getDocument('./src/resources/assets/KVKK.pdf').promise.then(function(pdf) {
+            pdfDoc = pdf;
+            document.getElementById('pageCount').textContent = pdf.numPages;
+            renderPage(pageNum);
+        });
+
+        function renderPage(num) {
+            pageRendering = true;
+            pdfDoc.getPage(num).then(function(page) {
+                let viewport = page.getViewport({scale: scale});
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                let renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                let renderTask = page.render(renderContext);
+
+                renderTask.promise.then(function() {
+                    pageRendering = false;
+                    if (pageNumPending !== null) {
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+                });
+            });
+
+            document.getElementById('pageNum').textContent = num;
+        }
+
+        function queueRenderPage(num) {
+            if (pageRendering) {
+                pageNumPending = num;
+            } else {
+                renderPage(num);
+            }
+        }
+
+        function previousPage() {
+            if (pageNum <= 1) return;
+            pageNum--;
+            queueRenderPage(pageNum);
+        }
+
+        function nextPage() {
+            if (pageNum >= pdfDoc.numPages) return;
+            pageNum++;
+            queueRenderPage(pageNum);
+        }
+
+        function goToLastPage() {
+            pageNum = pdfDoc.numPages;
+            queueRenderPage(pageNum);
+        }
+
+        // Track mouse position
+        canvas.addEventListener('mousemove', function(e) {
+            let rect = canvas.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+            
+            // Convert to PDF coordinates (origin at bottom-left)
+            let pdfX = Math.round(x / scale);
+            let pdfY = Math.round((canvas.height - y) / scale);
+            
+            document.getElementById('mouseX').textContent = pdfX;
+            document.getElementById('mouseY').textContent = pdfY;
+        });
+
+        // Record coordinates on click
+        canvas.addEventListener('click', function(e) {
+            let rect = canvas.getBoundingClientRect();
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+            
+            // Convert to PDF coordinates
+            let pdfX = Math.round(x / scale);
+            let pdfY = Math.round((canvas.height - y) / scale);
+            
+            let fieldType = document.getElementById('fieldType').value;
+            coordinates[fieldType] = { x: pdfX, y: pdfY, page: pageNum };
+            
+            // Add visual marker
+            let marker = document.createElement('div');
+            marker.className = 'marker';
+            marker.style.left = x + 'px';
+            marker.style.top = y + 'px';
+            document.getElementById('pdfContainer').appendChild(marker);
+            
+            updateCoordinatesList();
+        });
+
+        function updateCoordinatesList() {
+            let html = '';
+            for (let field in coordinates) {
+                let coord = coordinates[field];
+                html += `<div class="coordinate-item">
+                    <span>${field}:</span>
+                    <span>X: ${coord.x}, Y: ${coord.y} (Page ${coord.page})</span>
+                </div>`;
+            }
+            document.getElementById('coordinates').innerHTML = html;
+        }
+
+        function copyCoordinates() {
+            let text = 'PDF Coordinates for KVKK Form:\n\n';
+            
+            // Patient section
+            if (coordinates.consentText) {
+                text += `// "Okudum anladım kabul ediyorum" text\n`;
+                text += `consentTextX: ${coordinates.consentText.x},\n`;
+                text += `consentTextY: ${coordinates.consentText.y},\n\n`;
+            }
+            
+            if (coordinates.patientName) {
+                text += `// Patient name (AD/SOYAD)\n`;
+                text += `nameX: ${coordinates.patientName.x},\n`;
+                text += `nameY: ${coordinates.patientName.y},\n\n`;
+            }
+            
+            if (coordinates.patientSignature) {
+                text += `// Patient signature\n`;
+                text += `signatureX: ${coordinates.patientSignature.x},\n`;
+                text += `signatureY: ${coordinates.patientSignature.y},\n\n`;
+            }
+            
+            // Guardian section
+            text += '\n// Guardian section coordinates:\n';
+            
+            if (coordinates.guardianName) {
+                text += `// Guardian name\n`;
+                text += `nameX: ${coordinates.guardianName.x},\n`;
+                text += `nameY: ${coordinates.guardianName.y},\n\n`;
+            }
+            
+            if (coordinates.guardianRelationship) {
+                text += `// Relationship degree\n`;
+                text += `relationshipX: ${coordinates.guardianRelationship.x},\n`;
+                text += `relationshipY: ${coordinates.guardianRelationship.y},\n\n`;
+            }
+            
+            if (coordinates.guardianDate) {
+                text += `// Date\n`;
+                text += `dateX: ${coordinates.guardianDate.x},\n`;
+                text += `dateY: ${coordinates.guardianDate.y},\n\n`;
+            }
+            
+            if (coordinates.guardianSignature) {
+                text += `// Guardian signature\n`;
+                text += `signatureX: ${coordinates.guardianSignature.x},\n`;
+                text += `signatureY: ${coordinates.guardianSignature.y},\n`;
+            }
+            
+            navigator.clipboard.writeText(text).then(function() {
+                alert('Coordinates copied to clipboard!');
+            });
+        }
+    </script>
+</body>
+</html>

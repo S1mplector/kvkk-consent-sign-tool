@@ -89,17 +89,34 @@ class PDFProcessor {
     async addPatientSection(page, formData, patientSignature, font, boldFont) {
         const { width, height } = page.getSize();
         
-        // Coordinates for patient section (based on KVKK.pdf layout)
+        // Coordinates for patient section - exact positions from KVKK.pdf
+        // PDF coordinates start from bottom-left corner
         const patientSection = {
-            nameX: 120,
-            nameY: 85,
-            signatureX: 120,
-            signatureY: 55,
-            signatureWidth: 200,
-            signatureHeight: 25
+            // "Okudum anladım kabul ediyorum" handwritten text position
+            consentTextX: 218,
+            consentTextY: 706,
+            // Patient name position (AD/SOYAD field)
+            nameX: 147,
+            nameY: 631,
+            // Signature position (İMZA field)
+            signatureX: 128,
+            signatureY: 590,  // Adjusted to be slightly lower to fit in the signature box
+            signatureWidth: 200,  // Wider to fill the signature area
+            signatureHeight: 30   // Appropriate height for signature field
         };
 
-        // Add patient name (sanitize Turkish characters for PDF compatibility)
+        // Add "Okudum anladım kabul ediyorum" handwritten text
+        const consentText = this.sanitizeTextForPDF("Okudum anladim kabul ediyorum");
+        page.drawText(consentText, {
+            x: patientSection.consentTextX,
+            y: patientSection.consentTextY,
+            size: 12,  // Slightly larger for handwritten text
+            font: font,
+            color: PDFLib.rgb(0, 0, 0.8),
+            rotate: PDFLib.degrees(-1) // Subtle rotation for handwritten effect
+        });
+
+        // Add patient name after "AD/SOYAD :"
         if (formData.patientName) {
             const sanitizedName = this.sanitizeTextForPDF(formData.patientName);
             page.drawText(sanitizedName, {
@@ -111,26 +128,28 @@ class PDFProcessor {
             });
         }
 
-        // Add "Okudum anladım kabul ediyorum" text (sanitized)
-        const consentText = this.sanitizeTextForPDF("Okudum anladim kabul ediyorum");
-        page.drawText(consentText, {
-            x: 50,
-            y: 110,
-            size: 10,
-            font: font,
-            color: PDFLib.rgb(0, 0, 0)
-        });
-
         // Add patient signature
         if (patientSignature && !patientSignature.isEmpty) {
             await this.embedSignature(
-                page, 
-                patientSignature.dataURL, 
-                patientSection.signatureX, 
+                page,
+                patientSignature.dataURL,
+                patientSection.signatureX,
                 patientSection.signatureY,
                 patientSection.signatureWidth,
                 patientSection.signatureHeight
             );
+        }
+
+        // Add date if not guardian role
+        if (formData.role === 'patient') {
+            const currentDate = new Date().toLocaleDateString('tr-TR');
+            page.drawText(currentDate, {
+                x: 400,
+                y: patientSection.nameY,
+                size: 11,
+                font: font,
+                color: PDFLib.rgb(0, 0, 0)
+            });
         }
     }
 
@@ -140,61 +159,64 @@ class PDFProcessor {
     async addGuardianSection(page, formData, guardianSignature, font, boldFont) {
         const { width, height } = page.getSize();
         
-        // Coordinates for guardian section
+        // Coordinates for guardian section - exact positions from KVKK.pdf
         const guardianSection = {
-            nameX: 120,
-            nameY: 35,
-            relationshipX: 120,
-            relationshipY: 25,
-            dateX: 120,
-            dateY: 15,
-            signatureX: 120,
-            signatureY: 5,
-            signatureWidth: 200,
-            signatureHeight: 20
+            // Guardian name position (Ad-Soyad field)
+            nameX: 157,
+            nameY: 560,
+            // Relationship degree position (Yakınlık derecesi field)
+            relationshipX: 190,
+            relationshipY: 536,
+            // Date position (Tarih field)
+            dateX: 142,
+            dateY: 512,
+            // Guardian signature position (İmza field)
+            signatureX: 197,
+            signatureY: 475,  // Adjusted to be slightly lower
+            signatureWidth: 180,  // Wider for guardian signature
+            signatureHeight: 25
         };
 
-        // Add guardian name (sanitized)
+        // Add guardian name after "Ad-Soyad :"
         if (formData.guardianName) {
             const sanitizedName = this.sanitizeTextForPDF(formData.guardianName);
             page.drawText(sanitizedName, {
                 x: guardianSection.nameX,
                 y: guardianSection.nameY,
-                size: 12,
+                size: 11,
                 font: font,
                 color: PDFLib.rgb(0, 0, 0)
             });
         }
 
-        // Add relationship degree (sanitized)
+        // Add relationship degree after "Yakınlık derecesi :"
         if (formData.relationshipDegree) {
             const sanitizedRelationship = this.sanitizeTextForPDF(formData.relationshipDegree);
             page.drawText(sanitizedRelationship, {
                 x: guardianSection.relationshipX,
                 y: guardianSection.relationshipY,
-                size: 12,
+                size: 11,
                 font: font,
                 color: PDFLib.rgb(0, 0, 0)
             });
         }
 
-        // Add date
-        if (formData.date) {
-            page.drawText(formData.date, {
-                x: guardianSection.dateX,
-                y: guardianSection.dateY,
-                size: 12,
-                font: font,
-                color: PDFLib.rgb(0, 0, 0)
-            });
-        }
+        // Add current date after "Tarih :"
+        const currentDate = new Date().toLocaleDateString('tr-TR');
+        page.drawText(currentDate, {
+            x: guardianSection.dateX,
+            y: guardianSection.dateY,
+            size: 11,
+            font: font,
+            color: PDFLib.rgb(0, 0, 0)
+        });
 
-        // Add guardian signature
+        // Add guardian signature after "İmza :"
         if (guardianSignature && !guardianSignature.isEmpty) {
             await this.embedSignature(
-                page, 
-                guardianSignature.dataURL, 
-                guardianSection.signatureX, 
+                page,
+                guardianSignature.dataURL,
+                guardianSection.signatureX,
                 guardianSection.signatureY,
                 guardianSection.signatureWidth,
                 guardianSection.signatureHeight
@@ -207,11 +229,14 @@ class PDFProcessor {
      */
     async embedSignature(page, signatureDataURL, x, y, width, height) {
         try {
+            // Get the PDF document from the page
+            const pdfDoc = page.doc;
+            
             // Convert data URL to bytes
             const signatureBytes = this.dataURLToBytes(signatureDataURL);
             
             // Embed the signature image
-            const signatureImage = await this.pdfDoc.embedPng(signatureBytes);
+            const signatureImage = await pdfDoc.embedPng(signatureBytes);
             
             // Calculate aspect ratio to maintain signature proportions
             const signatureDims = signatureImage.scale(1);
@@ -234,6 +259,8 @@ class PDFProcessor {
                 height: finalHeight,
                 opacity: 1
             });
+
+            console.log(`Signature embedded at: x=${x}, y=${y}, width=${finalWidth}, height=${finalHeight}`);
 
         } catch (error) {
             console.error('Error embedding signature:', error);

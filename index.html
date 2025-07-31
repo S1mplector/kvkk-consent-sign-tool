@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="src/styles/animations.css">
     <link rel="stylesheet" href="src/styles/splash.css">
     <link rel="stylesheet" href="src/styles/mobile.css">
+    <link rel="stylesheet" href="src/styles/forms.css">
+    <link rel="stylesheet" href="src/styles/signature.css">
 </head>
 <body class="splash-active">
     <!-- Splash Screen -->
@@ -62,54 +64,90 @@
             <h1 class="visually-hidden">KVKK Kişisel Verilerin Korunması Onay Formu</h1>
         </header>
 
-        <!-- PDF Viewer Container -->
+        <!-- Main Content Container -->
         <main class="main-content">
-            <div class="pdf-viewer-container">
-                <div class="pdf-viewer" id="pdfViewer">
-                    <canvas id="pdfCanvas"></canvas>
-                </div>
-                
-                <!-- Navigation Controls -->
-                <div class="pdf-controls">
-                    <button id="prevPage" class="nav-btn" disabled>‹</button>
-                    <span class="page-info">
-                        <span id="currentPage">1</span> / <span id="totalPages">1</span>
-                    </span>
-                    <button id="nextPage" class="nav-btn">›</button>
-                </div>
-            </div>
+            <!-- Role Selection Section -->
+            <section id="roleSection" class="app-section" style="display: none;">
+                <!-- Role selector will be rendered here -->
+            </section>
 
-            <!-- Consent Section -->
-            <section class="consent-section" role="form" aria-labelledby="consent-heading">
-                <h2 id="consent-heading" class="visually-hidden">Onay Bölümü</h2>
-                
-                <div class="consent-checkbox">
-                    <input type="checkbox" id="consentCheck" class="checkbox" 
-                           aria-describedby="consent-description" 
-                           aria-required="true">
-                    <label for="consentCheck" class="checkbox-label">
-                        <span class="consent-icon" aria-hidden="true">📋</span>
-                        Okudum, anlıyorum.
-                    </label>
-                    <div id="consent-description" class="visually-hidden">
-                        KVKK formunu okuduğunuzu ve anladığınızı onaylamak için bu kutuyu işaretleyin
+            <!-- Patient Form Section -->
+            <section id="formSection" class="app-section" style="display: none;">
+                <!-- Patient form will be rendered here -->
+            </section>
+
+            <!-- PDF Viewer Section -->
+            <section id="pdfSection" class="app-section" style="display: none;">
+                <div class="pdf-viewer-container">
+                    <div class="pdf-viewer" id="pdfViewer">
+                        <canvas id="pdfCanvas"></canvas>
+                    </div>
+                    
+                    <!-- Navigation Controls -->
+                    <div class="pdf-controls">
+                        <button id="prevPage" class="nav-btn" disabled>‹</button>
+                        <span class="page-info">
+                            <span id="currentPage">1</span> / <span id="totalPages">1</span>
+                        </span>
+                        <button id="nextPage" class="nav-btn">›</button>
                     </div>
                 </div>
+            </section>
+
+            <!-- Signature Section -->
+            <section id="signatureSection" class="app-section" style="display: none;">
+                <!-- Patient signature pad -->
+                <div id="patientSignatureContainer"></div>
                 
-                <button id="submitBtn" class="submit-btn" disabled 
-                        aria-describedby="submit-description">
-                    <span class="submit-icon" aria-hidden="true">✉️</span>
-                    Onayla ve Gönder
-                </button>
-                <div id="submit-description" class="visually-hidden">
-                    Onayınızı göndermek için önce yukarıdaki kutuyu işaretlemeniz gerekiyor
+                <!-- Guardian signature pad (conditional) -->
+                <div id="guardianSignatureContainer" style="display: none;"></div>
+            </section>
+
+            <!-- Consent Section -->
+            <section id="consentSection" class="app-section" style="display: none;">
+                <div class="consent-section" role="form" aria-labelledby="consent-heading">
+                    <h2 id="consent-heading" class="visually-hidden">Onay Bölümü</h2>
+                    
+                    <div class="consent-checkbox">
+                        <input type="checkbox" id="consentCheck" class="checkbox"
+                               aria-describedby="consent-description"
+                               aria-required="true">
+                        <label for="consentCheck" class="checkbox-label">
+                            <span class="consent-icon" aria-hidden="true">📋</span>
+                            Okudum, anlıyorum.
+                        </label>
+                        <div id="consent-description" class="visually-hidden">
+                            KVKK formunu okuduğunuzu ve anladığınızı onaylamak için bu kutuyu işaretleyin
+                        </div>
+                    </div>
+                    
+                    <button id="submitBtn" class="submit-btn" disabled
+                            aria-describedby="submit-description">
+                        <span class="submit-icon" aria-hidden="true">✉️</span>
+                        Onayla ve Gönder
+                    </button>
+                    <div id="submit-description" class="visually-hidden">
+                        Onayınızı göndermek için önce yukarıdaki kutuyu işaretlemeniz gerekiyor
+                    </div>
                 </div>
             </section>
         </main>
     </div>
 
-    <!-- PDF.js Library -->
+    <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+    
+    <!-- Application Components -->
+    <script src="src/js/utils/validation.js"></script>
+    <script src="src/js/utils/apiClient.js"></script>
+    <script src="src/js/components/roleSelector.js"></script>
+    <script src="src/js/components/patientForm.js"></script>
+    <script src="src/js/components/signaturePad.js"></script>
+    <script src="src/js/components/pdfProcessor.js"></script>
+    
+    <!-- Main Application -->
     <script src="src/js/app.js"></script>
 </body>
 </html>

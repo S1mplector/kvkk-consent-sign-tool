@@ -1,26 +1,62 @@
+/**
+ * Enhanced KVKK Consent Application
+ * Integrates role selection, form filling, PDF viewing, digital signatures, and email submission
+ */
 class KVKKConsentApp {
     constructor() {
+        // Core properties
         this.pdfDoc = null;
         this.currentPage = 1;
         this.totalPages = 0;
         this.canvas = document.getElementById('pdfCanvas');
-        this.ctx = this.canvas.getContext('2d');
+        this.ctx = this.canvas?.getContext('2d');
         this.scale = 1.5;
+        
+        // Application state
+        this.currentStep = 'role'; // role -> form -> pdf -> signature -> consent
+        this.userRole = null;
+        this.formData = {};
+        this.signatures = {
+            patient: null,
+            guardian: null
+        };
         
         // Touch handling for swipe navigation
         this.touchStartX = 0;
         this.touchEndX = 0;
         this.isSwipeEnabled = true;
         
+        // Components
+        this.roleSelector = null;
+        this.patientForm = null;
+        this.patientSignaturePad = null;
+        this.guardianSignaturePad = null;
+        this.pdfProcessor = null;
+        this.apiClient = null;
+        
         // Elements
         this.elements = {
+            // Sections
+            roleSection: document.getElementById('roleSection'),
+            formSection: document.getElementById('formSection'),
+            pdfSection: document.getElementById('pdfSection'),
+            signatureSection: document.getElementById('signatureSection'),
+            consentSection: document.getElementById('consentSection'),
+            
+            // PDF controls
             prevBtn: document.getElementById('prevPage'),
             nextBtn: document.getElementById('nextPage'),
             currentPageSpan: document.getElementById('currentPage'),
             totalPagesSpan: document.getElementById('totalPages'),
+            pdfViewer: document.getElementById('pdfViewer'),
+            
+            // Consent controls
             consentCheck: document.getElementById('consentCheck'),
             submitBtn: document.getElementById('submitBtn'),
-            pdfViewer: document.getElementById('pdfViewer')
+            
+            // Signature containers
+            patientSignatureContainer: document.getElementById('patientSignatureContainer'),
+            guardianSignatureContainer: document.getElementById('guardianSignatureContainer')
         };
         
         this.init();
@@ -28,41 +64,185 @@ class KVKKConsentApp {
     
     async init() {
         try {
-            // Configure PDF.js
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            // Check if PDF.js is available, if not use fallback
+            if (typeof pdfjsLib !== 'undefined') {
+                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            }
             
-            // Load PDF
-            await this.loadPDF('./src/resources/assets/example.pdf');
+            // Initialize components
+            this.initializeComponents();
             
             // Setup event listeners
             this.setupEventListeners();
             
-            // Render first page
-            await this.renderPage(1);
+            // Start with role selection
+            this.showStep('role');
             
         } catch (error) {
             console.error('Error initializing app:', error);
+            this.showError('Uygulama başlatılırken bir hata oluştu.');
+        }
+    }
+    
+    initializeComponents() {
+        // Initialize API client
+        this.apiClient = new APIClient();
+        
+        // Initialize PDF processor
+        this.pdfProcessor = new PDFProcessor();
+        
+        // Initialize role selector
+        this.roleSelector = new RoleSelector(
+            this.elements.roleSection,
+            (role) => this.handleRoleSelection(role)
+        );
+        
+        // Initialize signature pads
+        this.patientSignaturePad = new SignaturePadComponent(
+            this.elements.patientSignatureContainer,
+            { penColor: 'rgb(0, 0, 0)' }
+        );
+        
+        this.guardianSignaturePad = new SignaturePadComponent(
+            this.elements.guardianSignatureContainer,
+            { penColor: 'rgb(0, 0, 0)' }
+        );
+    }
+    
+    setupEventListeners() {
+        // PDF navigation
+        this.elements.prevBtn?.addEventListener('click', () => this.goToPreviousPage());
+        this.elements.nextBtn?.addEventListener('click', () => this.goToNextPage());
+        
+        // Consent checkbox
+        this.elements.consentCheck?.addEventListener('change', (e) => {
+            this.elements.submitBtn.disabled = !e.target.checked;
+        });
+        
+        // Submit button
+        this.elements.submitBtn?.addEventListener('click', () => this.handleFinalSubmit());
+        
+        // Touch events for PDF swipe navigation
+        if (this.elements.pdfViewer) {
+            this.elements.pdfViewer.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: true });
+            this.elements.pdfViewer.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: true });
+        }
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => this.handleKeydown(e));
+        
+        // Resize handler
+        window.addEventListener('resize', () => this.handleResize());
+    }
+    
+    handleRoleSelection(role) {
+        this.userRole = role;
+        
+        // Initialize patient form with selected role
+        this.patientForm = new PatientForm(this.elements.formSection, role);
+        this.patientForm.setCallbacks({
+            onNext: (formData) => this.handleFormSubmission(formData),
+            onBack: () => this.showStep('role')
+        });
+        
+        this.showStep('form');
+    }
+    
+    async handleFormSubmission(formData) {
+        try {
+            // Validate form data
+            const validation = ValidationUtils.validateFormData(formData);
+            if (!validation.isValid) {
+                this.showError('Form verilerinde hata var: ' + validation.errors.map(e => e.message).join(', '));
+                return;
+            }
+            
+            // Store form data
+            this.formData = ValidationUtils.sanitizeFormData(formData);
+            
+            // Load and show PDF
+            await this.loadAndShowPDF();
+            
+        } catch (error) {
+            console.error('Form submission error:', error);
+            this.showError('Form gönderilirken bir hata oluştu.');
+        }
+    }
+    
+    async loadAndShowPDF() {
+        try {
+            this.showLoading();
+            
+            // Try PDF.js first, fallback to iframe if not available
+            if (typeof pdfjsLib !== 'undefined') {
+                try {
+                    const loadingTask = pdfjsLib.getDocument('./src/resources/assets/KVKK.pdf');
+                    this.pdfDoc = await loadingTask.promise;
+                    this.totalPages = this.pdfDoc.numPages;
+                    this.elements.totalPagesSpan.textContent = this.totalPages;
+                    
+                    // Render first page
+                    await this.renderPage(1);
+                } catch (pdfJsError) {
+                    console.warn('PDF.js failed, using fallback:', pdfJsError);
+                    this.usePDFFallback();
+                }
+            } else {
+                console.warn('PDF.js not available, using fallback');
+                this.usePDFFallback();
+            }
+            
+            // Load PDF with PDF-lib for processing
+            await this.pdfProcessor.loadPDF('./src/resources/assets/KVKK.pdf');
+            
+            this.hideLoading();
+            this.showStep('pdf');
+            
+        } catch (error) {
+            this.hideLoading();
+            console.error('PDF loading error:', error);
             this.showError('PDF yüklenirken bir hata oluştu.');
         }
     }
     
-    async loadPDF(url) {
-        try {
-            this.showLoading();
-            const loadingTask = pdfjsLib.getDocument(url);
-            this.pdfDoc = await loadingTask.promise;
-            this.totalPages = this.pdfDoc.numPages;
-            this.elements.totalPagesSpan.textContent = this.totalPages;
-            this.hideLoading();
-        } catch (error) {
-            this.hideLoading();
-            throw error;
+    usePDFFallback() {
+        // Hide canvas and show iframe fallback
+        if (this.canvas) {
+            this.canvas.style.display = 'none';
         }
+        
+        // Create iframe for PDF display
+        const pdfViewer = this.elements.pdfViewer;
+        let iframe = pdfViewer.querySelector('iframe');
+        
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.src = './src/resources/assets/KVKK.pdf';
+            iframe.style.cssText = `
+                width: 100%;
+                height: 600px;
+                border: none;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            `;
+            pdfViewer.appendChild(iframe);
+        }
+        
+        // Hide navigation controls since iframe handles its own navigation
+        const controls = document.querySelector('.pdf-controls');
+        if (controls) {
+            controls.style.display = 'none';
+        }
+        
+        // Show signature prompt immediately
+        setTimeout(() => {
+            this.showSignaturePrompt();
+        }, 2000);
     }
     
     async renderPage(pageNum) {
         try {
-            if (!this.pdfDoc) return;
+            if (!this.pdfDoc || !this.canvas) return;
             
             const page = await this.pdfDoc.getPage(pageNum);
             const viewport = page.getViewport({ scale: this.scale });
@@ -84,41 +264,202 @@ class KVKKConsentApp {
             this.elements.currentPageSpan.textContent = pageNum;
             this.updateNavigationButtons();
             
+            // Show signature section when on last page
+            if (pageNum === this.totalPages) {
+                this.showSignaturePrompt();
+            }
+            
         } catch (error) {
             console.error('Error rendering page:', error);
             this.showError('Sayfa görüntülenirken bir hata oluştu.');
         }
     }
     
-    updateNavigationButtons() {
-        this.elements.prevBtn.disabled = this.currentPage <= 1;
-        this.elements.nextBtn.disabled = this.currentPage >= this.totalPages;
+    showSignaturePrompt() {
+        // Add a prompt to proceed to signature after viewing all pages
+        const existingPrompt = document.querySelector('.signature-prompt');
+        if (existingPrompt) return;
+        
+        const prompt = document.createElement('div');
+        prompt.className = 'signature-prompt';
+        prompt.innerHTML = `
+            <div style="text-align: center; padding: 20px; background: #e3f2fd; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0 0 15px 0; font-weight: 500;">KVKK metnini okudunuz. Şimdi dijital imzanızı atabilirsiniz.</p>
+                <button id="proceedToSignature" class="next-btn" style="padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    <span>İmzaya Geç</span> ➡️
+                </button>
+            </div>
+        `;
+        
+        this.elements.pdfSection.appendChild(prompt);
+        
+        document.getElementById('proceedToSignature').addEventListener('click', () => {
+            this.showStep('signature');
+        });
     }
     
-    setupEventListeners() {
-        // Navigation buttons
-        this.elements.prevBtn.addEventListener('click', () => this.goToPreviousPage());
-        this.elements.nextBtn.addEventListener('click', () => this.goToNextPage());
-        
-        // Consent checkbox
-        this.elements.consentCheck.addEventListener('change', (e) => {
-            this.elements.submitBtn.disabled = !e.target.checked;
+    showStep(step) {
+        // Hide all sections
+        Object.values(this.elements).forEach(element => {
+            if (element && element.classList && element.classList.contains('app-section')) {
+                element.style.display = 'none';
+            }
         });
         
-        // Submit button
-        this.elements.submitBtn.addEventListener('click', () => this.handleSubmit());
+        // Show current step
+        this.currentStep = step;
         
-        // Touch events for swipe navigation
-        this.elements.pdfViewer.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: true });
-        this.elements.pdfViewer.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: true });
+        switch (step) {
+            case 'role':
+                this.elements.roleSection.style.display = 'block';
+                this.roleSelector.show();
+                break;
+                
+            case 'form':
+                this.elements.formSection.style.display = 'block';
+                this.patientForm.show();
+                break;
+                
+            case 'pdf':
+                this.elements.pdfSection.style.display = 'block';
+                break;
+                
+            case 'signature':
+                this.elements.signatureSection.style.display = 'block';
+                this.setupSignatureSection();
+                break;
+                
+            case 'consent':
+                this.elements.consentSection.style.display = 'block';
+                break;
+        }
         
-        // Keyboard navigation
-        document.addEventListener('keydown', (e) => this.handleKeydown(e));
-        
-        // Resize handler
-        window.addEventListener('resize', () => this.handleResize());
+        // Update page title
+        this.updatePageTitle(step);
     }
     
+    setupSignatureSection() {
+        // Show patient signature pad
+        this.patientSignaturePad.show();
+        
+        // Show guardian signature pad if role is guardian
+        if (this.userRole === 'guardian') {
+            this.elements.guardianSignatureContainer.style.display = 'block';
+            this.guardianSignaturePad.show();
+        } else {
+            this.elements.guardianSignatureContainer.style.display = 'none';
+        }
+        
+        // Add navigation buttons
+        this.addSignatureNavigation();
+    }
+    
+    addSignatureNavigation() {
+        const existingNav = document.querySelector('.signature-navigation');
+        if (existingNav) return;
+        
+        const nav = document.createElement('div');
+        nav.className = 'signature-navigation';
+        nav.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 20px 0; border-top: 1px solid #e9ecef; margin-top: 20px;">
+                <button id="backToPdf" class="back-btn" style="padding: 12px 24px; background: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    ⬅️ <span>PDF'e Dön</span>
+                </button>
+                <button id="proceedToConsent" class="next-btn" style="padding: 12px 24px; background: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    <span>Onaya Geç</span> ➡️
+                </button>
+            </div>
+        `;
+        
+        this.elements.signatureSection.appendChild(nav);
+        
+        // Add event listeners
+        document.getElementById('backToPdf').addEventListener('click', () => {
+            this.showStep('pdf');
+        });
+        
+        document.getElementById('proceedToConsent').addEventListener('click', () => {
+            this.handleSignatureCompletion();
+        });
+    }
+    
+    handleSignatureCompletion() {
+        // Validate signatures
+        const patientSig = this.patientSignaturePad.getSignatureData();
+        const guardianSig = this.userRole === 'guardian' ? this.guardianSignaturePad.getSignatureData() : null;
+        
+        const sigValidation = ValidationUtils.validateSignatures({
+            patient: patientSig,
+            guardian: guardianSig
+        }, this.userRole);
+        
+        if (!sigValidation.isValid) {
+            this.showError('İmza eksik: ' + sigValidation.errors.map(e => e.message).join(', '));
+            return;
+        }
+        
+        // Store signatures
+        this.signatures.patient = patientSig;
+        if (this.userRole === 'guardian') {
+            this.signatures.guardian = guardianSig;
+        }
+        
+        this.showStep('consent');
+    }
+    
+    async handleFinalSubmit() {
+        if (!this.elements.consentCheck.checked) {
+            this.showError('Lütfen onay kutusunu işaretleyin.');
+            return;
+        }
+        
+        try {
+            this.elements.submitBtn.disabled = true;
+            this.elements.submitBtn.innerHTML = '<span>Gönderiliyor...</span> ⏳';
+            
+            // Process PDF with form data and signatures
+            const processedPdfBytes = await this.pdfProcessor.processPDF(this.formData, this.signatures);
+            
+            // Create PDF blob
+            const pdfBlob = this.pdfProcessor.createPDFBlob(processedPdfBytes);
+            
+            // Submit to backend
+            const result = await this.apiClient.submitConsent(this.formData, pdfBlob);
+            
+            if (result.success) {
+                this.showSuccess('Onayınız başarıyla gönderildi! E-posta adresinizi kontrol edin.');
+                this.resetApplication();
+            } else {
+                throw new Error(result.error || 'Gönderim başarısız');
+            }
+            
+        } catch (error) {
+            console.error('Final submission error:', error);
+            this.showError('Gönderim sırasında bir hata oluştu: ' + error.message);
+            this.elements.submitBtn.disabled = false;
+            this.elements.submitBtn.innerHTML = '<span class="submit-icon" aria-hidden="true">✉️</span> Onayla ve Gönder';
+        }
+    }
+    
+    // PDF Navigation Methods
+    updateNavigationButtons() {
+        if (this.elements.prevBtn) this.elements.prevBtn.disabled = this.currentPage <= 1;
+        if (this.elements.nextBtn) this.elements.nextBtn.disabled = this.currentPage >= this.totalPages;
+    }
+    
+    async goToPreviousPage() {
+        if (this.currentPage > 1) {
+            await this.renderPage(this.currentPage - 1);
+        }
+    }
+    
+    async goToNextPage() {
+        if (this.currentPage < this.totalPages) {
+            await this.renderPage(this.currentPage + 1);
+        }
+    }
+    
+    // Touch and Keyboard Handlers
     handleTouchStart(e) {
         if (!this.isSwipeEnabled) return;
         this.touchStartX = e.changedTouches[0].screenX;
@@ -136,16 +477,16 @@ class KVKKConsentApp {
         
         if (Math.abs(swipeDistance) > swipeThreshold) {
             if (swipeDistance > 0) {
-                // Swipe left - next page
                 this.goToNextPage();
             } else {
-                // Swipe right - previous page
                 this.goToPreviousPage();
             }
         }
     }
     
     handleKeydown(e) {
+        if (this.currentStep !== 'pdf') return;
+        
         switch(e.key) {
             case 'ArrowLeft':
                 e.preventDefault();
@@ -158,73 +499,26 @@ class KVKKConsentApp {
         }
     }
     
-    async goToPreviousPage() {
-        if (this.currentPage > 1) {
-            await this.renderPage(this.currentPage - 1);
-        }
-    }
-    
-    async goToNextPage() {
-        if (this.currentPage < this.totalPages) {
-            await this.renderPage(this.currentPage + 1);
-        }
-    }
-    
     handleResize() {
-        // Debounce resize events
         clearTimeout(this.resizeTimeout);
         this.resizeTimeout = setTimeout(() => {
-            this.renderPage(this.currentPage);
+            if (this.currentStep === 'pdf' && this.currentPage) {
+                this.renderPage(this.currentPage);
+            }
         }, 250);
     }
     
-    async handleSubmit() {
-        if (!this.elements.consentCheck.checked) {
-            this.showError('Lütfen onay kutusunu işaretleyin.');
-            return;
-        }
-        
-        try {
-            this.elements.submitBtn.disabled = true;
-            this.elements.submitBtn.textContent = 'Gönderiliyor...';
-            
-            // Simulate processing time
-            await new Promise(resolve => setTimeout(resolve, 1500));
-            
-            // Here you would implement the actual submission logic
-            // For now, we'll just show a success message
-            await this.processConsent();
-            
-            this.showSuccess('Onayınız başarıyla kaydedildi!');
-            
-        } catch (error) {
-            console.error('Error submitting consent:', error);
-            this.showError('Gönderim sırasında bir hata oluştu. Lütfen tekrar deneyin.');
-            this.elements.submitBtn.disabled = false;
-            this.elements.submitBtn.textContent = 'Onayla ve Gönder';
-        }
-    }
-    
-    async processConsent() {
-        // This is where you would implement the actual consent processing
-        // For example:
-        // - Generate a signed document
-        // - Send to email
-        // - Save to database
-        // - etc.
-        
-        const consentData = {
-            timestamp: new Date().toISOString(),
-            userAgent: navigator.userAgent,
-            pdfPages: this.totalPages,
-            consentGiven: true
+    // UI Helper Methods
+    updatePageTitle(step) {
+        const titles = {
+            role: 'Rol Seçimi',
+            form: 'Bilgi Formu',
+            pdf: 'KVKK Metni',
+            signature: 'Dijital İmza',
+            consent: 'Onay'
         };
         
-        console.log('Consent data:', consentData);
-        
-        // Placeholder for future implementation
-        // await this.sendConsentEmail(consentData);
-        // await this.saveConsentToDatabase(consentData);
+        document.title = `KVKK Onay Formu - ${titles[step] || 'Yükleniyor'}`;
     }
     
     showLoading() {
@@ -232,7 +526,9 @@ class KVKKConsentApp {
         loadingOverlay.className = 'pdf-loading-overlay';
         loadingOverlay.innerHTML = '<div class="loading-spinner"></div>';
         loadingOverlay.id = 'loadingOverlay';
-        this.elements.pdfViewer.appendChild(loadingOverlay);
+        
+        const targetElement = this.currentStep === 'pdf' ? this.elements.pdfViewer : document.body;
+        targetElement.appendChild(loadingOverlay);
     }
     
     hideLoading() {
@@ -258,9 +554,31 @@ class KVKKConsentApp {
         const messageDiv = document.createElement('div');
         messageDiv.className = `${type}-message`;
         messageDiv.textContent = message;
+        messageDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-weight: 500;
+            max-width: 90%;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        `;
         
-        const consentSection = document.querySelector('.consent-section');
-        consentSection.appendChild(messageDiv);
+        if (type === 'error') {
+            messageDiv.style.background = '#f8d7da';
+            messageDiv.style.color = '#721c24';
+            messageDiv.style.border = '1px solid #f5c6cb';
+        } else {
+            messageDiv.style.background = '#d4edda';
+            messageDiv.style.color = '#155724';
+            messageDiv.style.border = '1px solid #c3e6cb';
+        }
+        
+        document.body.appendChild(messageDiv);
         
         // Auto-remove after 5 seconds
         setTimeout(() => {
@@ -269,9 +587,36 @@ class KVKKConsentApp {
             }
         }, 5000);
     }
+    
+    resetApplication() {
+        // Reset all state
+        this.currentStep = 'role';
+        this.userRole = null;
+        this.formData = {};
+        this.signatures = { patient: null, guardian: null };
+        
+        // Reset components
+        if (this.roleSelector) this.roleSelector.reset();
+        if (this.patientForm) this.patientForm.reset();
+        if (this.patientSignaturePad) this.patientSignaturePad.clear();
+        if (this.guardianSignaturePad) this.guardianSignaturePad.clear();
+        if (this.pdfProcessor) this.pdfProcessor.reset();
+        
+        // Reset consent checkbox
+        if (this.elements.consentCheck) this.elements.consentCheck.checked = false;
+        if (this.elements.submitBtn) this.elements.submitBtn.disabled = true;
+        
+        // Remove dynamic elements
+        document.querySelectorAll('.signature-prompt, .signature-navigation').forEach(el => el.remove());
+        
+        // Show role selection
+        setTimeout(() => {
+            this.showStep('role');
+        }, 2000);
+    }
 }
 
-// Splash Screen Handler
+// Splash Screen Handler (Enhanced)
 class SplashScreenHandler {
     constructor() {
         this.splashScreen = document.getElementById('splashScreen');
@@ -280,54 +625,50 @@ class SplashScreenHandler {
     }
     
     init() {
-        // Start the splash sequence
         this.startSplashSequence();
     }
     
     startSplashSequence() {
-        // Animation completes at ~2 seconds, then persist for 1.5 seconds
-        // Total time: ~3.5 seconds (2s animation + 1.5s persistence)
         setTimeout(() => {
             this.transitionToMainApp();
         }, 3500);
     }
     
     transitionToMainApp() {
-        // Fade out splash screen
         this.splashScreen.classList.add('fade-out');
-        
-        // Remove splash-active class from body
         this.body.classList.remove('splash-active');
         
-        // Remove splash screen from DOM after transition
         setTimeout(() => {
             if (this.splashScreen.parentNode) {
                 this.splashScreen.remove();
             }
         }, 1000);
         
-        // Initialize the main app
         setTimeout(() => {
             new KVKKConsentApp();
         }, 500);
     }
 }
 
-// Initialize the splash screen and app when DOM is loaded
+// Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
-    // Check if user prefers reduced motion
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     
     if (prefersReducedMotion) {
-        // Skip splash screen for users who prefer reduced motion
         document.body.classList.remove('splash-active');
-        document.getElementById('splashScreen').remove();
+        const splashScreen = document.getElementById('splashScreen');
+        if (splashScreen) splashScreen.remove();
         new KVKKConsentApp();
     } else {
-        // Show splash screen with full animation
         new SplashScreenHandler();
     }
 });
 
-// Service Worker can be added later for offline support
-// Currently disabled to avoid CORS issues during development
+// Global error handler
+window.addEventListener('error', (event) => {
+    console.error('Global error:', event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    console.error('Unhandled promise rejection:', event.reason);
+});

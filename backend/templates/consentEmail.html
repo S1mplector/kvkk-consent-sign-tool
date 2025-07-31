@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KVKK Onay Formu</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px 10px 0 0;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0 0 10px 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        .greeting {
+            font-size: 20px;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #007bff;
+        }
+        .info-box {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+        .info-box h3 {
+            color: #1976d2;
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        .info-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .info-table td {
+            padding: 8px 0;
+            vertical-align: top;
+        }
+        .info-table td:first-child {
+            font-weight: 600;
+            color: #495057;
+            width: 120px;
+        }
+        .success-box {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #28a745;
+            text-align: center;
+        }
+        .success-box strong {
+            font-size: 16px;
+        }
+        .attachment-info {
+            background: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #ffc107;
+        }
+        .contact-info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+        }
+        .contact-info h3 {
+            color: #2c3e50;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .contact-info p {
+            margin: 5px 0;
+            color: #495057;
+        }
+        .contact-info .clinic-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #2c3e50;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+        }
+        .footer p {
+            color: #6c757d;
+            font-size: 12px;
+            margin: 5px 0;
+        }
+        .guardian-info {
+            background: #f0f8ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            border-left: 4px solid #17a2b8;
+        }
+        .guardian-info h4 {
+            color: #17a2b8;
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 10px;
+            }
+            .header, .content {
+                padding: 20px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+            .greeting {
+                font-size: 18px;
+            }
+            .info-table td:first-child {
+                width: 100px;
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>KVKK Onay Formu</h1>
+            <p>Kişisel Verilerin Korunması Kanunu</p>
+        </div>
+
+        <div class="content">
+            <div class="greeting">
+                Sayın {{patientName}},
+            </div>
+            
+            <p>KVKK (Kişisel Verilerin Korunması Kanunu) onay formunuz başarıyla alınmış ve işlenmiştir.</p>
+            
+            <div class="info-box">
+                <h3>📋 Form Detayları</h3>
+                <table class="info-table">
+                    <tr>
+                        <td>Hasta Adı:</td>
+                        <td>{{patientName}}</td>
+                    </tr>
+                    <tr>
+                        <td>E-posta:</td>
+                        <td>{{email}}</td>
+                    </tr>
+                    <tr>
+                        <td>Rol:</td>
+                        <td>{{role}}</td>
+                    </tr>
+                    <tr>
+                        <td>Tarih:</td>
+                        <td>{{date}} {{time}}</td>
+                    </tr>
+                </table>
+
+                <!-- Guardian information (only shown if role is guardian) -->
+                {{#if guardianName}}
+                <div class="guardian-info">
+                    <h4>👨‍👩‍👧‍👦 Yakın Bilgileri</h4>
+                    <table class="info-table">
+                        <tr>
+                            <td>Yakın Adı:</td>
+                            <td>{{guardianName}}</td>
+                        </tr>
+                        <tr>
+                            <td>Yakınlık:</td>
+                            <td>{{relationshipDegree}}</td>
+                        </tr>
+                    </table>
+                </div>
+                {{/if}}
+            </div>
+
+            <div class="success-box">
+                <strong>✅ Onayınız başarıyla kaydedilmiştir</strong>
+            </div>
+
+            <div class="attachment-info">
+                <strong>📎 Ek Dosya:</strong> Dijital imzanızla onayladığınız KVKK formu ekte bulunmaktadır. Bu belgeyi güvenli bir yerde saklayınız.
+            </div>
+
+            <p>Bu e-posta, KVKK onay formunuzun başarıyla işlendiğini doğrulamaktadır. Ekte bulunan PDF dosyası, dijital imzanızla onayladığınız resmi belgedir.</p>
+
+            <p><strong>Önemli Notlar:</strong></p>
+            <ul>
+                <li>Bu belge yasal geçerliliğe sahiptir</li>
+                <li>Dijital imzanız güvenli şekilde kaydedilmiştir</li>
+                <li>Herhangi bir sorunuz olması durumunda bizimle iletişime geçebilirsiniz</li>
+            </ul>
+
+            <div class="contact-info">
+                <h3>📞 İletişim Bilgileri</h3>
+                <p class="clinic-name">{{clinicName}}</p>
+                <p>{{clinicAddress}}</p>
+                <p><strong>Telefon:</strong> {{clinicPhone}}</p>
+                <p><strong>E-posta:</strong> {{clinicEmail}}</p>
+                <p><strong>Web:</strong> www.handecelikmehmetoglu.com.tr</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Bu e-posta otomatik olarak gönderilmiştir. Lütfen yanıtlamayınız.</p>
+            <p>© {{year}} {{clinicName}}. Tüm hakları saklıdır.</p>
+            <p style="margin-top: 15px; color: #adb5bd;">
+                🔒 Bu e-posta ve ekleri gizli bilgiler içermektedir. Yanlışlıkla aldıysanız lütfen siliniz.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

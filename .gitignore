@@ -240,3 +240,8 @@ temp-signatures/
 auth-keys/
 certificates/
 backend/.env.example
+SECURITY_AUDIT_REPORT.md
+SECURITY_IMPLEMENTATION.md
+DEPLOYMENT_SCRIPTS.md
+PROXY_SERVER_SETUP.md
+security-verification-report.json

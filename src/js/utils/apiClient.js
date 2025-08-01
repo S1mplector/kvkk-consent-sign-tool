@@ -3,9 +3,26 @@
  * Handles communication with the backend server
  */
 class APIClient {
-    constructor(baseURL = 'http://localhost:3000') {
-        this.baseURL = baseURL;
+    constructor(baseURL = null) {
+        // When accessed through proxy, use the same origin
+        // Otherwise fall back to direct backend URL
+        this.baseURL = baseURL || this.detectBaseURL();
         this.timeout = 30000; // 30 seconds
+    }
+
+    /**
+     * Detect the appropriate base URL based on current location
+     */
+    detectBaseURL() {
+        // If we're running through the proxy (port 8080), use relative URLs
+        if (window.location.port === '8080' || window.location.hostname.includes('ngrok')) {
+            console.log('🔍 Detected proxy/ngrok environment, using relative URLs');
+            return ''; // Empty string means use same origin
+        }
+        
+        // Otherwise, use direct backend URL
+        console.log('🔍 Using direct backend URL');
+        return 'http://localhost:3000';
     }
 
     /**

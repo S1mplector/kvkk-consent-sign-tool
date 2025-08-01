@@ -6,6 +6,8 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
 const emailService = require('../services/emailService');
+const storageService = require('../services/storageService');
+const tokenService = require('../services/tokenService');
 
 const router = express.Router();
 
@@ -94,8 +96,22 @@ router.post('/submit', validateConsentForm, async (req, res) => {
         // Log submission
         console.log(`📝 New consent form submission from ${formData.email} (${formData.role})`);
 
+        // Store encrypted submission data
+        const storageResult = await storageService.storeSubmission(formData, pdfBuffer);
+        if (!storageResult.success) {
+            throw new Error('Failed to store submission securely');
+        }
+
         // Send email to patient/guardian
         const emailResult = await emailService.sendConsentForm(formData, pdfBuffer);
+
+        // Generate secure download token for the stored submission
+        const downloadToken = tokenService.generateDownloadToken(storageResult.submissionId, {
+            ip: req.ip,
+            userAgent: req.get('User-Agent'),
+            maxDownloads: 3,
+            expiresIn: '24h'
+        });
 
         // Send notification to admin (optional, won't fail if not configured)
         try {
@@ -104,26 +120,49 @@ router.post('/submit', validateConsentForm, async (req, res) => {
             console.warn('⚠️  Admin notification failed:', adminError.message);
         }
 
-        // Log successful submission
-        console.log(`✅ Consent form processed successfully for ${formData.email}`);
+        // Record successful submission for brute force protection
+        if (req.bruteForceTracking) {
+            req.bruteForceTracking.recordSuccess();
+        }
 
-        // Return success response
+        // Log successful submission
+        console.log(`✅ Consent form processed successfully for ${formData.email} (ID: ${storageResult.submissionId})`);
+
+        // Return success response with secure download link
         res.json({
             success: true,
             message: 'Consent form submitted successfully',
             data: {
+                submissionId: storageResult.submissionId,
                 messageId: emailResult.messageId,
                 recipient: emailResult.recipient,
                 timestamp: emailResult.timestamp,
                 patientName: formData.patientName,
-                role: formData.role
+                role: formData.role,
+                downloadToken: downloadToken.token,
+                downloadUrl: `/api/download/file?token=${downloadToken.token}`,
+                downloadExpiresAt: downloadToken.expiresAt,
+                retentionExpiresAt: storageResult.metadata.expiresAt
             }
         });
 
     } catch (error) {
         console.error('❌ Consent submission error:', error);
 
+        // Record failure for brute force protection
+        if (req.bruteForceTracking) {
+            req.bruteForceTracking.recordFailure();
+        }
+
         // Handle specific error types
+        if (error.message.includes('Failed to store submission securely')) {
+            return res.status(500).json({
+                error: 'Data storage failed',
+                message: 'Failed to securely store your submission',
+                code: 'STORAGE_FAILED'
+            });
+        }
+
         if (error.message.includes('Email gönderimi başarısız')) {
             return res.status(500).json({
                 error: 'Email delivery failed',
@@ -143,8 +182,8 @@ router.post('/submit', validateConsentForm, async (req, res) => {
         // Generic error response
         res.status(500).json({
             error: 'Internal server error',
-            message: process.env.NODE_ENV === 'production' 
-                ? 'An error occurred while processing your request' 
+            message: process.env.NODE_ENV === 'production'
+                ? 'An error occurred while processing your request'
                 : error.message,
             code: 'INTERNAL_ERROR'
         });

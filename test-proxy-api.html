@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Proxy API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Proxy API Test</h1>
+    
+    <div class="test-section">
+        <h2>Current Configuration</h2>
+        <p>Window Location: <code id="location"></code></p>
+        <p>Detected Base URL: <code id="baseUrl"></code></p>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 1: Health Check</h2>
+        <button onclick="testHealth()">Test Health Endpoint</button>
+        <div id="healthResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 2: CORS Test</h2>
+        <button onclick="testCORS()">Test CORS</button>
+        <div id="corsResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Test 3: Form Submission (Mock)</h2>
+        <button onclick="testSubmission()">Test Submission</button>
+        <div id="submissionResult"></div>
+    </div>
+
+    <script>
+        // Display current configuration
+        document.getElementById('location').textContent = window.location.href;
+        
+        // Detect base URL logic (same as in apiClient.js)
+        function detectBaseURL() {
+            if (window.location.port === '8080' || window.location.hostname.includes('ngrok')) {
+                return ''; // Empty string means use same origin
+            }
+            return 'http://localhost:3000';
+        }
+        
+        const baseURL = detectBaseURL();
+        document.getElementById('baseUrl').textContent = baseURL || '(same origin)';
+
+        // Helper function to make requests
+        async function makeRequest(endpoint, options = {}) {
+            const url = `${baseURL}${endpoint}`;
+            console.log('Making request to:', url);
+            
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers
+                    }
+                });
+                
+                const data = await response.json();
+                return { success: response.ok, status: response.status, data };
+            } catch (error) {
+                return { success: false, error: error.message };
+            }
+        }
+
+        // Test functions
+        async function testHealth() {
+            const resultDiv = document.getElementById('healthResult');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+            
+            const result = await makeRequest('/api/health');
+            
+            if (result.success) {
+                resultDiv.innerHTML = `
+                    <p class="success">✓ Health check passed!</p>
+                    <pre>${JSON.stringify(result.data, null, 2)}</pre>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <p class="error">✗ Health check failed!</p>
+                    <pre>Error: ${result.error}</pre>
+                `;
+            }
+        }
+
+        async function testCORS() {
+            const resultDiv = document.getElementById('corsResult');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+            
+            const result = await makeRequest('/api/test-cors', {
+                method: 'POST',
+                body: JSON.stringify({ test: true })
+            });
+            
+            if (result.success) {
+                resultDiv.innerHTML = `
+                    <p class="success">✓ CORS test passed!</p>
+                    <pre>${JSON.stringify(result.data, null, 2)}</pre>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <p class="error">✗ CORS test failed!</p>
+                    <pre>Error: ${result.error}</pre>
+                `;
+            }
+        }
+
+        async function testSubmission() {
+            const resultDiv = document.getElementById('submissionResult');
+            resultDiv.innerHTML = '<p>Testing...</p>';
+            
+            // Create mock form data
+            const formData = new FormData();
+            formData.append('formData', JSON.stringify({
+                patientName: 'Test User',
+                patientTC: '12345678901',
+                patientEmail: 'test@example.com',
+                consentGiven: true
+            }));
+            
+            // Create a mock PDF blob
+            const pdfContent = new Uint8Array([0x25, 0x50, 0x44, 0x46]); // PDF header
+            const pdfBlob = new Blob([pdfContent], { type: 'application/pdf' });
+            formData.append('pdf', pdfBlob, 'test.pdf');
+            
+            try {
+                const url = `${baseURL}/api/consent/submit`;
+                console.log('Submitting to:', url);
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p class="success">✓ Submission endpoint reachable!</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <p class="error">✗ Submission failed (${response.status})</p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <p class="error">✗ Network error!</p>
+                    <pre>Error: ${error.message}</pre>
+                    <p>This suggests the backend is not reachable through the proxy.</p>
+                `;
+            }
+        }
+
+        // Auto-run health check on load
+        window.addEventListener('load', () => {
+            setTimeout(testHealth, 1000);
+        });
+    </script>
+</body>
+</html>

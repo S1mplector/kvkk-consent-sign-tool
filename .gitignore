@@ -239,9 +239,35 @@ temp-signatures/
 *.pfx
 auth-keys/
 certificates/
+
+# Storage directories with sensitive data
+backend/storage/
+storage/
+*.enc
+encrypted-data/
+
+# Security reports (keep for documentation)
+# SECURITY_AUDIT_REPORT.md
+# SECURITY_IMPLEMENTATION.md
+# DEPLOYMENT_SCRIPTS.md
+# PROXY_SERVER_SETUP.md
+security-verification-report.json
+security-test-report.json
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Session data
+sessions/
+*.session
 backend/.env.example
-SECURITY_AUDIT_REPORT.md
-SECURITY_IMPLEMENTATION.md
 DEPLOYMENT_SCRIPTS.md
 PROXY_SERVER_SETUP.md
-security-verification-report.json
+SECURITY_AUDIT_REPORT.md
+SECURITY_DEPLOYMENT_CHECKLIST.md
+SECURITY_IMPLEMENTATION.md
+backend/.env.production.template
+backend/comprehensive-test-report.json
+backend/focused-test-report.json

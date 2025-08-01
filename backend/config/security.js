@@ -160,7 +160,9 @@ class SecurityConfig {
             noSniff: true,
 
             // X-XSS-Protection
-            xssFilter: true,
+            xssFilter: {
+                mode: 'block'
+            },
 
             // Referrer Policy
             referrerPolicy: {
@@ -208,7 +210,7 @@ class SecurityConfig {
             // General API rate limiting
             general: {
                 windowMs: 15 * 60 * 1000, // 15 minutes
-                max: this.isProduction ? 100 : 1000, // More lenient in development
+                max: this.isProduction ? 100 : 100, // Consistent limit for testing
                 message: {
                     error: 'Too many requests from this IP, please try again later.',
                     code: 'RATE_LIMIT_EXCEEDED'

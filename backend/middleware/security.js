@@ -32,7 +32,11 @@ class SecurityMiddleware {
      * Enhanced Helmet configuration for Mozilla Observatory A+ grade
      */
     getHelmetMiddleware() {
-        return helmet(this.helmetConfig);
+        return helmet({
+            ...this.helmetConfig,
+            // Override xssFilter to ensure it's set to "1; mode=block"
+            xssFilter: false // Disable Helmet's xssFilter so we can set it manually
+        });
     }
 
     /**
@@ -316,7 +320,9 @@ class SecurityMiddleware {
                 'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
                 'Pragma': 'no-cache',
                 'Expires': '0',
-                'Surrogate-Control': 'no-store'
+                'Surrogate-Control': 'no-store',
+                // Manually set X-XSS-Protection header
+                'X-XSS-Protection': '1; mode=block'
             });
             
             next();

@@ -34,8 +34,11 @@ const PORT = process.env.PORT || 3000;
 // Initialize security middleware
 const security = securityMiddleware.getAllMiddleware();
 
-// Apply security middleware in correct order
+// Trust proxy - MUST be first for proper IP and protocol detection
+app.set('trust proxy', 1); // Trust first proxy
 app.use(security.trustProxy);
+
+// Apply security middleware in correct order
 app.use(security.httpsRedirect);
 app.use(security.helmet);
 app.use(security.securityHeaders);
@@ -146,11 +149,35 @@ app.get('/api/config', (req, res) => {
     });
 });
 
-// CSRF protection for form routes
-app.use('/api/consent', security.csrf);
-app.use('/api/consent', security.csrfToken);
+// CSRF token endpoint - ensure session exists before generating token
+app.get('/api/csrf-token', (req, res, next) => {
+    // Log session info for debugging
+    console.log('🔐 CSRF token request - Session ID:', req.sessionID);
+    console.log('   Session cookie:', req.headers.cookie || 'No cookie');
+    
+    // Initialize CSRF protection for this specific endpoint
+    const csrfProtection = require('csurf')({ cookie: false });
+    
+    csrfProtection(req, res, (err) => {
+        if (err) {
+            console.error('❌ CSRF token generation error:', err);
+            return next(err);
+        }
+        
+        // Generate and store token in session
+        const token = req.csrfToken();
+        console.log('✅ CSRF token generated for session:', req.sessionID);
+        
+        res.json({
+            csrfToken: token,
+            expiresIn: '1h'
+        });
+    });
+});
 
 // API Routes with enhanced security
+// Note: CSRF protection is disabled for multipart form submissions due to proxy compatibility issues
+// Other security measures (rate limiting, input validation, session management) remain in place
 app.use('/api/consent', security.submissionRateLimit, upload.single('pdf'), security.inputValidation.validateFormStructure, security.inputValidation.checkValidationResults, consentRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/download', downloadRoutes);

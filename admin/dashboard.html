@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KVKK Admin Dashboard</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Header -->
+        <header class="admin-header">
+            <div class="header-left">
+                <h1 class="dashboard-title">KVKK Admin Dashboard</h1>
+            </div>
+            <div class="header-right">
+                <div class="connection-status" id="connectionStatus">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Connected</span>
+                </div>
+                <div class="admin-menu">
+                    <button class="admin-dropdown-btn" id="adminMenuBtn">
+                        <span class="admin-name">Admin</span>
+                        <svg class="dropdown-icon" width="12" height="12" viewBox="0 0 12 12">
+                            <path d="M2 4L6 8L10 4" stroke="currentColor" stroke-width="2" fill="none"/>
+                        </svg>
+                    </button>
+                    <div class="admin-dropdown" id="adminDropdown">
+                        <a href="#" class="dropdown-item" id="logoutBtn">Logout</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Content -->
+        <main class="dashboard-main">
+            <!-- System Health Overview -->
+            <section class="health-overview card">
+                <div class="card-header">
+                    <h2>System Health Overview</h2>
+                    <div class="last-update">
+                        Last Update: <span id="lastUpdate">Loading...</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="overall-status" id="overallStatus">
+                        <div class="status-indicator">
+                            <span class="status-icon"></span>
+                            <span class="status-label">Checking...</span>
+                        </div>
+                    </div>
+                    <div class="services-grid" id="servicesGrid">
+                        <!-- Service cards will be dynamically inserted here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Metrics Row -->
+            <div class="metrics-row">
+                <!-- System Metrics -->
+                <section class="system-metrics card">
+                    <div class="card-header">
+                        <h3>System Metrics</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-item">
+                            <span class="metric-label">Uptime</span>
+                            <span class="metric-value" id="uptimeValue">--</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Environment</span>
+                            <span class="metric-value" id="environmentValue">--</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Version</span>
+                            <span class="metric-value" id="versionValue">--</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Protocol</span>
+                            <span class="metric-value" id="protocolValue">--</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Security Status -->
+                <section class="security-status card">
+                    <div class="card-header">
+                        <h3>Security Status</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-item">
+                            <span class="metric-label">HTTPS</span>
+                            <span class="metric-value" id="httpsValue">--</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">CSRF</span>
+                            <span class="metric-value" id="csrfValue">--</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Rate Limit</span>
+                            <span class="metric-value" id="rateLimitValue">--</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Encryption</span>
+                            <span class="metric-value" id="encryptionValue">--</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Recent Activity -->
+            <section class="recent-activity card">
+                <div class="card-header">
+                    <h3>Recent Activity</h3>
+                    <button class="refresh-btn" id="refreshActivityBtn">
+                        <svg width="16" height="16" viewBox="0 0 16 16">
+                            <path d="M13.65 2.35A8 8 0 1 0 16 8h-2a6 6 0 1 1-1.9-4.35L10 5.75V0h5.75l-2.1 2.35z" fill="currentColor"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="activity-list" id="activityList">
+                        <div class="activity-item">
+                            <span class="activity-time">--:--:--</span>
+                            <span class="activity-icon">ℹ️</span>
+                            <span class="activity-message">Loading activity...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Actions -->
+            <section class="quick-actions card">
+                <div class="card-header">
+                    <h3>Quick Actions</h3>
+                </div>
+                <div class="card-body">
+                    <div class="actions-grid">
+                        <button class="action-btn" id="testEmailBtn">
+                            <svg class="action-icon" width="24" height="24" viewBox="0 0 24 24">
+                                <path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="currentColor"/>
+                            </svg>
+                            <span>Test Email</span>
+                        </button>
+                        <button class="action-btn" id="runDiagnosticsBtn">
+                            <svg class="action-icon" width="24" height="24" viewBox="0 0 24 24">
+                                <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z" fill="currentColor"/>
+                            </svg>
+                            <span>Run Diagnostics</span>
+                        </button>
+                        <button class="action-btn" id="exportLogsBtn">
+                            <svg class="action-icon" width="24" height="24" viewBox="0 0 24 24">
+                                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z" fill="currentColor"/>
+                            </svg>
+                            <span>Export Logs</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/dashboard.js"></script>
+    <script src="js/health-monitor.js"></script>
+</body>
+</html>

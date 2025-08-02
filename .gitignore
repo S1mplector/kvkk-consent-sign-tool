@@ -271,3 +271,6 @@ SECURITY_IMPLEMENTATION.md
 backend/.env.production.template
 backend/comprehensive-test-report.json
 backend/focused-test-report.json
+ADMIN_DASHBOARD_MOCKUP.md
+ADMIN_DASHBOARD_PLAN.md
+cookies.txt

@@ -8,6 +8,8 @@ class APIClient {
         // Otherwise fall back to direct backend URL
         this.baseURL = baseURL || this.detectBaseURL();
         this.timeout = 30000; // 30 seconds
+        this.csrfToken = null;
+        this.csrfTokenExpiry = null;
     }
 
     /**
@@ -26,6 +28,42 @@ class APIClient {
     }
 
     /**
+     * Get CSRF token from server
+     */
+    async getCSRFToken() {
+        // Check if we have a valid token
+        if (this.csrfToken && this.csrfTokenExpiry && new Date() < this.csrfTokenExpiry) {
+            return this.csrfToken;
+        }
+
+        try {
+            console.log('🔐 Fetching CSRF token...');
+            const response = await fetch(`${this.baseURL}/api/csrf-token`, {
+                method: 'GET',
+                credentials: 'include', // Important for session cookies
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch CSRF token: ${response.status}`);
+            }
+
+            const data = await response.json();
+            this.csrfToken = data.csrfToken;
+            // Token expires in 1 hour (adjust based on your server config)
+            this.csrfTokenExpiry = new Date(Date.now() + 60 * 60 * 1000);
+            
+            console.log('✅ CSRF token obtained');
+            return this.csrfToken;
+        } catch (error) {
+            console.error('❌ Failed to get CSRF token:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Make HTTP request with error handling
      */
     async makeRequest(endpoint, options = {}) {
@@ -39,11 +77,15 @@ class APIClient {
             bodyType: options.body ? options.body.constructor.name : 'none'
         });
         
+        // CSRF protection has been disabled for multipart forms due to proxy compatibility
+        // Keeping the structure for potential future use with other endpoints
+        
         const defaultOptions = {
             headers: {
                 'Content-Type': 'application/json',
                 ...options.headers
             },
+            credentials: 'include', // Include cookies for session management
             timeout: this.timeout
         };
 
@@ -73,6 +115,17 @@ class APIClient {
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('❌ HTTP Error:', errorData);
+                
+                // If CSRF token is invalid, clear it and retry once
+                if (response.status === 403 && errorData.code === 'CSRF_INVALID' && !options._csrfRetry) {
+                    console.log('🔄 CSRF token invalid, refreshing and retrying...');
+                    this.csrfToken = null;
+                    this.csrfTokenExpiry = null;
+                    
+                    // Retry the request with a fresh token
+                    return this.makeRequest(endpoint, { ...options, _csrfRetry: true });
+                }
+                
                 throw new APIError(
                     errorData.message || `HTTP ${response.status}: ${response.statusText}`,
                     response.status,

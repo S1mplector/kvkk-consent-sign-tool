@@ -40,13 +40,16 @@ class SecurityConfig {
             secret: process.env.SESSION_SECRET || this.generateSessionSecret(),
             name: 'kvkk.sid',
             resave: false,
-            saveUninitialized: false,
+            saveUninitialized: true, // Important: save uninitialized sessions for CSRF
             rolling: true,
+            proxy: true, // Trust the reverse proxy
             cookie: {
-                secure: this.isProduction, // HTTPS only in production
+                secure: this.isProduction && !process.env.ALLOW_INSECURE_SESSION, // Allow insecure in dev/proxy
                 httpOnly: true,
                 maxAge: 30 * 60 * 1000, // 30 minutes
-                sameSite: 'strict'
+                sameSite: this.isProduction ? 'strict' : 'lax', // Lax in development for proxy
+                path: '/',
+                domain: undefined // Let the browser handle domain
             },
             // Use Redis in production, memory in development
             store: this.getSessionStore()
@@ -83,19 +86,24 @@ class SecurityConfig {
      */
     getCSRFConfig() {
         return {
-            cookie: {
-                httpOnly: true,
-                secure: this.isProduction,
-                sameSite: 'strict',
-                maxAge: 3600000 // 1 hour
-            },
+            cookie: false, // Use session-based CSRF tokens, not cookie-based
+            sessionKey: 'csrfSecret', // Store CSRF secret in session
             ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
             value: (req) => {
-                return req.body._csrf || 
-                       req.query._csrf || 
+                // Look for token in multiple places
+                const token = req.body._csrf ||
+                       req.query._csrf ||
                        req.headers['csrf-token'] ||
                        req.headers['x-csrf-token'] ||
                        req.headers['x-xsrf-token'];
+                
+                if (!token && req.method === 'POST') {
+                    console.log('⚠️  No CSRF token found in request');
+                    console.log('   Body _csrf:', req.body._csrf);
+                    console.log('   Headers:', Object.keys(req.headers).filter(h => h.includes('csrf')));
+                }
+                
+                return token;
             }
         };
     }

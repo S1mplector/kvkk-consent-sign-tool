@@ -78,14 +78,26 @@ class SecurityMiddleware {
         
         return (req, res, next) => {
             // Skip CSRF for certain endpoints
-            const skipPaths = ['/api/health', '/api/config'];
-            if (skipPaths.includes(req.path)) {
+            const skipPaths = [
+                '/api/health',
+                '/api/config',
+                '/api/csrf-token' // Allow fetching CSRF token without having one
+            ];
+            
+            // Check both relative and full paths
+            const fullPath = req.baseUrl ? req.baseUrl + req.path : req.path;
+            if (skipPaths.includes(req.path) || skipPaths.includes(fullPath)) {
                 return next();
             }
 
             csrfProtection(req, res, (err) => {
                 if (err) {
                     console.error('❌ CSRF validation failed:', err.message);
+                    console.error('   Session ID:', req.sessionID || 'No session');
+                    console.error('   Session data:', req.session ? Object.keys(req.session) : 'No session');
+                    console.error('   Cookie header:', req.headers.cookie || 'No cookies');
+                    console.error('   CSRF token header:', req.headers['x-csrf-token'] || 'No CSRF header');
+                    console.error('   Error code:', err.code);
                     return res.status(403).json({
                         error: 'CSRF token validation failed',
                         code: 'CSRF_INVALID'

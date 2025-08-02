@@ -10,6 +10,9 @@ const { spawn } = require('child_process');
 const fetch = require('node-fetch');
 
 const app = express();
+
+// IMPORTANT: Do not use body parsing middleware for multipart/form-data
+// Let the proxy handle the raw request body
 const PORT = process.env.PROXY_PORT || 8080;
 const BACKEND_PORT = process.env.BACKEND_PORT || 3000;
 const BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
@@ -19,8 +22,9 @@ let backendProcess;
 
 function startBackendServer() {
     console.log('🚀 Starting backend server...');
-    backendProcess = spawn('node', ['backend/server.js'], {
+    backendProcess = spawn('node', ['server.js'], {
         stdio: 'pipe',
+        cwd: path.join(__dirname, 'backend'), // Set working directory to backend folder
         env: { ...process.env, PORT: BACKEND_PORT }
     });
 
@@ -47,6 +51,44 @@ const apiProxy = createProxyMiddleware({
     changeOrigin: true,
     timeout: 30000,
     proxyTimeout: 30000,
+    // Important: Let the proxy handle the request/response streaming
+    selfHandleResponse: false,
+    // CRITICAL: Enable cookie forwarding for session-based CSRF
+    cookieDomainRewrite: {
+        "*": "" // Remove domain from cookies
+    },
+    // Ensure headers are properly forwarded
+    onProxyReq: (proxyReq, req, res) => {
+        console.log(`📤 [Proxy Request] ${req.method} ${req.url} -> ${BACKEND_URL}${req.url}`);
+        
+        // Log important headers for debugging
+        console.log('   Cookie header:', req.headers.cookie || 'No cookies');
+        console.log('   CSRF header:', req.headers['x-csrf-token'] || 'No CSRF header');
+        
+        if (req.method === 'POST') {
+            console.log('   Headers:', req.headers['content-type']);
+            
+            // For multipart/form-data, ensure proper handling
+            if (req.headers['content-type'] && req.headers['content-type'].includes('multipart/form-data')) {
+                console.log('   Multipart form data detected');
+                // Don't modify content-length for multipart data
+                // The proxy will handle it automatically
+            }
+        }
+        
+        // Forward the host header to maintain proper origin
+        proxyReq.setHeader('X-Forwarded-Host', req.headers.host);
+        proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
+    },
+    onProxyRes: (proxyRes, req, res) => {
+        console.log(`📥 [Proxy Response] ${req.method} ${req.url} <- Status: ${proxyRes.statusCode}`);
+        
+        // Log Set-Cookie headers for debugging
+        const setCookieHeaders = proxyRes.headers['set-cookie'];
+        if (setCookieHeaders) {
+            console.log('   Set-Cookie headers:', setCookieHeaders.length, 'cookie(s)');
+        }
+    },
     onError: (err, req, res) => {
         console.error('❌ [Proxy Error]:', err.message);
         console.error('   Request:', req.method, req.url);
@@ -63,18 +105,6 @@ const apiProxy = createProxyMiddleware({
             message: 'Please ensure the backend server is running',
             details: err.message
         });
-    },
-    onProxyReq: (proxyReq, req, res) => {
-        console.log(`📤 [Proxy Request] ${req.method} ${req.url} -> ${BACKEND_URL}${req.url}`);
-        
-        // Log headers for debugging
-        if (req.method === 'POST') {
-            console.log('   Headers:', req.headers['content-type']);
-            console.log('   Has body:', !!req.body);
-        }
-    },
-    onProxyRes: (proxyRes, req, res) => {
-        console.log(`📥 [Proxy Response] ${req.method} ${req.url} <- Status: ${proxyRes.statusCode}`);
     }
 });
 

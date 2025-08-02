@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSRF Fix Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>CSRF Fix Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Get CSRF Token</h2>
+        <button onclick="testGetCSRFToken()">Get CSRF Token</button>
+        <div id="csrf-result" class="log"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Submit Form with CSRF</h2>
+        <button onclick="testSubmitForm()">Submit Test Form</button>
+        <div id="submit-result" class="log"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Full Flow Test</h2>
+        <button onclick="testFullFlow()">Run Full Test</button>
+        <div id="full-result" class="log"></div>
+    </div>
+
+    <script>
+        const baseURL = window.location.origin;
+        let csrfToken = null;
+
+        function log(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toISOString();
+            const className = isError ? 'error' : 'success';
+            element.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            element.scrollTop = element.scrollHeight;
+        }
+
+        async function testGetCSRFToken() {
+            const resultDiv = 'csrf-result';
+            log(resultDiv, 'Fetching CSRF token...');
+            
+            try {
+                const response = await fetch(`${baseURL}/api/csrf-token`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                log(resultDiv, `Response status: ${response.status}`);
+                log(resultDiv, `Response headers: ${JSON.stringify(Object.fromEntries(response.headers))}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    csrfToken = data.csrfToken;
+                    log(resultDiv, `CSRF token received: ${csrfToken}`);
+                    log(resultDiv, `Token expires in: ${data.expiresIn}`);
+                    
+                    // Check cookies
+                    log(resultDiv, `Document cookies: ${document.cookie || 'No cookies'}`);
+                } else {
+                    const error = await response.text();
+                    log(resultDiv, `Failed to get CSRF token: ${error}`, true);
+                }
+            } catch (error) {
+                log(resultDiv, `Error: ${error.message}`, true);
+            }
+        }
+
+        async function testSubmitForm() {
+            const resultDiv = 'submit-result';
+            
+            if (!csrfToken) {
+                log(resultDiv, 'No CSRF token available. Get token first!', true);
+                return;
+            }
+            
+            log(resultDiv, 'Creating test form data...');
+            
+            const formData = new FormData();
+            formData.append('_csrf', csrfToken);
+            formData.append('formData', JSON.stringify({
+                patientName: 'Test Patient',
+                email: 'test@example.com',
+                role: 'patient',
+                timestamp: new Date().toISOString()
+            }));
+            
+            // Create a test PDF blob
+            const pdfContent = 'Test PDF content';
+            const pdfBlob = new Blob([pdfContent], { type: 'application/pdf' });
+            formData.append('pdf', pdfBlob, 'test.pdf');
+            
+            log(resultDiv, 'Submitting form with CSRF token...');
+            
+            try {
+                const response = await fetch(`${baseURL}/api/consent/submit`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData,
+                    headers: {
+                        'x-csrf-token': csrfToken
+                    }
+                });
+                
+                log(resultDiv, `Response status: ${response.status}`);
+                
+                const responseText = await response.text();
+                let responseData;
+                try {
+                    responseData = JSON.parse(responseText);
+                } catch {
+                    responseData = responseText;
+                }
+                
+                if (response.ok) {
+                    log(resultDiv, `Success: ${JSON.stringify(responseData, null, 2)}`);
+                } else {
+                    log(resultDiv, `Failed: ${JSON.stringify(responseData, null, 2)}`, true);
+                }
+            } catch (error) {
+                log(resultDiv, `Error: ${error.message}`, true);
+            }
+        }
+
+        async function testFullFlow() {
+            const resultDiv = 'full-result';
+            log(resultDiv, '=== Starting full flow test ===');
+            
+            // Step 1: Get CSRF token
+            log(resultDiv, 'Step 1: Getting CSRF token...');
+            try {
+                const tokenResponse = await fetch(`${baseURL}/api/csrf-token`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                if (!tokenResponse.ok) {
+                    throw new Error(`Failed to get CSRF token: ${tokenResponse.status}`);
+                }
+                
+                const tokenData = await tokenResponse.json();
+                csrfToken = tokenData.csrfToken;
+                log(resultDiv, `✓ CSRF token obtained: ${csrfToken.substring(0, 20)}...`);
+                
+                // Wait a bit to ensure session is established
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Step 2: Submit form
+                log(resultDiv, 'Step 2: Submitting form with CSRF token...');
+                
+                const formData = new FormData();
+                formData.append('_csrf', csrfToken);
+                formData.append('formData', JSON.stringify({
+                    patientName: 'Test Patient',
+                    email: 'test@example.com',
+                    role: 'patient',
+                    timestamp: new Date().toISOString()
+                }));
+                
+                const pdfContent = 'Test PDF content';
+                const pdfBlob = new Blob([pdfContent], { type: 'application/pdf' });
+                formData.append('pdf', pdfBlob, 'test.pdf');
+                
+                const submitResponse = await fetch(`${baseURL}/api/consent/submit`, {
+                    method: 'POST',
+                    credentials: 'include',
+                    body: formData,
+                    headers: {
+                        'x-csrf-token': csrfToken
+                    }
+                });
+                
+                const submitResult = await submitResponse.json();
+                
+                if (submitResponse.ok) {
+                    log(resultDiv, `✓ Form submitted successfully!`);
+                    log(resultDiv, `Response: ${JSON.stringify(submitResult, null, 2)}`);
+                } else {
+                    log(resultDiv, `✗ Form submission failed: ${JSON.stringify(submitResult, null, 2)}`, true);
+                }
+                
+            } catch (error) {
+                log(resultDiv, `✗ Test failed: ${error.message}`, true);
+            }
+            
+            log(resultDiv, '=== Test completed ===');
+        }
+    </script>
+</body>
+</html>

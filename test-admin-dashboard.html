@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Admin Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        .button.secondary {
+            background-color: #6c757d;
+        }
+        .button.secondary:hover {
+            background-color: #545b62;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .iframe-container {
+            margin-top: 20px;
+            border: 2px solid #007bff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        iframe {
+            width: 100%;
+            height: 800px;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Admin Dashboard Test Page</h1>
+        
+        <div id="status" class="status">
+            Click "Test Health API" to check if the backend is running
+        </div>
+        
+        <div style="margin: 20px 0;">
+            <button class="button" onclick="testHealthAPI()">Test Health API</button>
+            <button class="button secondary" onclick="openDashboard()">Open Dashboard in iFrame</button>
+            <button class="button secondary" onclick="openDashboardNewTab()">Open Dashboard in New Tab</button>
+        </div>
+        
+        <h3>Health API Response:</h3>
+        <pre id="response">No data yet...</pre>
+        
+        <div id="dashboardFrame" class="iframe-container" style="display: none;">
+            <iframe id="dashboardIframe" src=""></iframe>
+        </div>
+    </div>
+
+    <script>
+        async function testHealthAPI() {
+            const statusEl = document.getElementById('status');
+            const responseEl = document.getElementById('response');
+            
+            statusEl.textContent = 'Testing health API...';
+            statusEl.className = 'status';
+            
+            try {
+                const response = await fetch('/api/health');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    statusEl.textContent = '✅ Backend is running and healthy!';
+                    statusEl.className = 'status success';
+                    responseEl.textContent = JSON.stringify(data, null, 2);
+                    
+                    // Show dashboard button if health check passes
+                    document.getElementById('dashboardFrame').style.display = 'none';
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                statusEl.textContent = `❌ Backend is not accessible: ${error.message}`;
+                statusEl.className = 'status error';
+                responseEl.textContent = `Error: ${error.message}\n\nMake sure the backend server is running on port 3000`;
+            }
+        }
+        
+        function openDashboard() {
+            const frame = document.getElementById('dashboardFrame');
+            const iframe = document.getElementById('dashboardIframe');
+            
+            if (frame.style.display === 'none') {
+                iframe.src = '/admin/dashboard.html';
+                frame.style.display = 'block';
+            } else {
+                frame.style.display = 'none';
+                iframe.src = '';
+            }
+        }
+        
+        function openDashboardNewTab() {
+            window.open('/admin/dashboard.html', '_blank');
+        }
+        
+        // Test on load
+        window.addEventListener('load', () => {
+            testHealthAPI();
+        });
+    </script>
+</body>
+</html>

@@ -10,6 +10,7 @@ const encryptionService = require('./encryptionService');
 const kvkkVersionService = require('./kvkkVersionService');
 const timestampService = require('./timestampService');
 const hashChainService = require('./hashChainService');
+const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
 
 class EvidenceBundleService {
   computePdfHash(pdfBuffer) {
@@ -68,6 +69,56 @@ class EvidenceBundleService {
     await storageService.writeSecureFile(evidencePath, evidenceEnc);
 
     return { success: true, submissionId: base.submissionId, evidence: { hashChain: bundle.hashChain, timestamp: bundle.timestamp } };
+  }
+
+  /**
+   * Embed evidence metadata into the PDF as an additional page with JSON block.
+   * Returns a new PDF buffer.
+   * @param {Buffer} pdfBuffer
+   * @param {Object} embedData - minimal evidence summary
+   */
+  async embedEvidenceInPdf(pdfBuffer, embedData) {
+    const pdfDoc = await PDFDocument.load(pdfBuffer);
+    const page = pdfDoc.addPage();
+    const { width, height } = page.getSize();
+    const font = await pdfDoc.embedFont(StandardFonts.Courier);
+    const title = 'KVKK SES Evidence Metadata';
+    const json = JSON.stringify(embedData, null, 2);
+    const text = `${title}\nGenerated: ${new Date().toISOString()}\n\n${json}`;
+
+    const margin = 50;
+    const fontSize = 10;
+    const lineHeight = fontSize * 1.3;
+    const maxWidth = width - margin * 2;
+
+    // simple text wrapping
+    const lines = [];
+    for (const rawLine of text.split('\n')) {
+      let remaining = rawLine;
+      while (remaining.length > 0) {
+        let cut = remaining.length;
+        // shrink until it fits
+        while (cut > 0 && font.widthOfTextAtSize(remaining.slice(0, cut), fontSize) > maxWidth) {
+          cut--;
+        }
+        if (cut === 0) break;
+        lines.push(remaining.slice(0, cut));
+        remaining = remaining.slice(cut);
+      }
+      if (remaining.length === 0) lines.push('');
+    }
+
+    let y = height - margin;
+    page.drawText(title, { x: margin, y, size: 12, font, color: rgb(0, 0, 0.6) });
+    y -= lineHeight * 2;
+    for (const line of lines.slice(2)) { // skip duplicated title lines
+      if (y < margin) break;
+      page.drawText(line, { x: margin, y, size: fontSize, font, color: rgb(0, 0, 0) });
+      y -= lineHeight;
+    }
+
+    const out = await pdfDoc.save();
+    return Buffer.from(out);
   }
 }
 

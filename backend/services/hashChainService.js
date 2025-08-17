@@ -56,6 +56,21 @@ class HashChainService {
     const entries = file.entries || [];
     return entries[entries.length - 1] || null;
   }
+
+  async getEntryByIndex(index) {
+    await this._init;
+    const file = await storageService.readSecureFile(this.chainFile);
+    const entries = file.entries || [];
+    return entries.find(e => e.index === Number(index)) || null;
+  }
+
+  async verifyEntryByIndex(index) {
+    const entry = await this.getEntryByIndex(index);
+    if (!entry) return { ok: false, reason: 'ENTRY_NOT_FOUND' };
+    const recomputed = this.computeHash(entry.index, entry.prevHash, entry.data);
+    const ok = recomputed === entry.hash;
+    return { ok, recomputed, stored: entry.hash, entry };
+  }
 }
 
 module.exports = new HashChainService();

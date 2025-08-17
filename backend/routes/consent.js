@@ -9,6 +9,11 @@ const emailService = require('../services/emailService');
 const storageService = require('../services/storageService');
 const tokenService = require('../services/tokenService');
 const evidenceBundleService = require('../services/evidenceBundleService');
+const encryptionService = require('../services/encryptionService');
+const hashChainService = require('../services/hashChainService');
+const timestampService = require('../services/timestampService');
+const path = require('path');
+const crypto = require('crypto');
 
 const router = express.Router();
 
@@ -228,8 +233,18 @@ router.post('/submit-evidence', validateConsentForm, async (req, res) => {
             { ip: req.ip, userAgent: req.get('User-Agent') }
         );
 
-        // Send email as in standard flow
-        const emailResult = await emailService.sendConsentForm(formData, pdfBuffer);
+        // Embed evidence metadata into PDF before emailing
+        const embedData = {
+            submissionId: bundleResult.submissionId,
+            patientName: formData.patientName,
+            role: formData.role,
+            pdfHash: crypto.createHash('sha256').update(pdfBuffer).digest('hex'),
+            evidence: bundleResult.evidence
+        };
+        const embeddedPdfBuffer = await evidenceBundleService.embedEvidenceInPdf(pdfBuffer, embedData);
+
+        // Send email with embedded PDF
+        const emailResult = await emailService.sendConsentForm(formData, embeddedPdfBuffer);
 
         // Generate download token
         const downloadToken = tokenService.generateDownloadToken(bundleResult.submissionId, {
@@ -408,6 +423,100 @@ router.get('/stats', async (req, res) => {
             error: 'Failed to fetch statistics',
             code: 'STATS_FETCH_FAILED'
         });
+    }
+});
+
+// Verify stored evidence bundle and integrity
+router.get('/evidence/:id/verify', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!storageService.isValidUUID(id)) {
+            return res.status(400).json({ error: 'Invalid submission ID', code: 'INVALID_ID' });
+        }
+
+        // Load encrypted evidence file
+        const evidencePath = path.join(
+            storageService.config.dataPath,
+            'metadata',
+            `${id}.evidence`
+        );
+
+        let encEvidence;
+        try {
+            encEvidence = await storageService.readSecureFile(evidencePath);
+        } catch (e) {
+            return res.status(404).json({ error: 'Evidence not found', code: 'EVIDENCE_NOT_FOUND' });
+        }
+
+        // Decrypt and parse bundle
+        let bundle;
+        try {
+            const plaintext = encryptionService.decrypt(encEvidence);
+            bundle = JSON.parse(plaintext);
+        } catch (e) {
+            return res.status(500).json({ error: 'Failed to decrypt evidence', code: 'EVIDENCE_DECRYPT_FAILED' });
+        }
+
+        // Retrieve stored PDF and compute hash
+        const retrieved = await storageService.retrieveSubmission(id);
+        const computedPdfHash = crypto.createHash('sha256').update(retrieved.pdfBuffer).digest('hex');
+        const pdfHashMatch = computedPdfHash === bundle.pdfHash;
+
+        // Verify hash chain entry
+        const chainIdx = bundle.hashChain?.index;
+        let chainVerification = { ok: false, reason: 'MISSING_CHAIN_DATA' };
+        if (typeof chainIdx === 'number') {
+            chainVerification = await hashChainService.verifyEntryByIndex(chainIdx);
+            // Cross-check entry content linkage
+            if (chainVerification.ok) {
+                const entry = chainVerification.entry;
+                const dataMatch = entry?.data?.submissionId === id && entry?.data?.pdfHash === bundle.pdfHash;
+                chainVerification = { ...chainVerification, dataMatch };
+            }
+        }
+
+        // Verify timestamp proof (basic/local or simulated TSA)
+        const ts = bundle.timestamp;
+        let timestampVerification = { ok: false, type: ts?.type || 'unknown' };
+        if (ts?.type === 'local') {
+            timestampVerification = { ok: true, type: 'local', createdAt: ts.createdAt };
+        } else if (ts?.type === 'tsa' && ts?.createdAt && ts?.token) {
+            try {
+                const expected = crypto
+                    .createHash('sha256')
+                    .update(`${ts.createdAt}:${JSON.stringify({ pdfHash: bundle.pdfHash })}`)
+                    .digest('hex');
+                const ok = expected === ts.token;
+                timestampVerification = { ok, type: 'tsa', createdAt: ts.createdAt, url: ts.url };
+            } catch (e) {
+                timestampVerification = { ok: false, type: 'tsa', error: 'TSA_VERIFY_FAILED' };
+            }
+        }
+
+        const overallOk = pdfHashMatch && chainVerification.ok && chainVerification.dataMatch && timestampVerification.ok;
+
+        res.json({
+            success: overallOk,
+            submissionId: id,
+            checks: {
+                pdfHashMatch,
+                computedPdfHash,
+                storedPdfHash: bundle.pdfHash,
+                hashChain: chainVerification,
+                timestamp: timestampVerification
+            },
+            evidence: {
+                anchoredAt: bundle.hashChain?.anchoredAt,
+                chainIndex: bundle.hashChain?.index,
+                prevHash: bundle.hashChain?.prevHash,
+                chainHash: bundle.hashChain?.hash,
+                timestamp: bundle.timestamp
+            }
+        });
+    } catch (error) {
+        console.error('❌ Evidence verification error:', error);
+        res.status(500).json({ error: 'Internal server error', code: 'INTERNAL_ERROR' });
     }
 });
 

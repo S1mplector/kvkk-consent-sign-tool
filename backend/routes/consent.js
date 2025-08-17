@@ -8,6 +8,7 @@ const { body, validationResult } = require('express-validator');
 const emailService = require('../services/emailService');
 const storageService = require('../services/storageService');
 const tokenService = require('../services/tokenService');
+const evidenceBundleService = require('../services/evidenceBundleService');
 
 const router = express.Router();
 
@@ -68,10 +69,9 @@ const validateConsentForm = [
     })
 ];
 
-// Submit consent form
+// Submit consent form (basic flow)
 router.post('/submit', validateConsentForm, async (req, res) => {
     try {
-        // Check validation results
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
             return res.status(400).json({
@@ -81,7 +81,6 @@ router.post('/submit', validateConsentForm, async (req, res) => {
             });
         }
 
-        // Check if PDF file is uploaded
         if (!req.file) {
             return res.status(400).json({
                 error: 'PDF file is required',
@@ -94,7 +93,7 @@ router.post('/submit', validateConsentForm, async (req, res) => {
         const pdfBuffer = req.file.buffer;
 
         // Log submission
-        console.log(`📝 New consent form submission from ${formData.email} (${formData.role})`);
+        console.log(` New consent form submission from ${formData.email} (${formData.role})`);
 
         // Store encrypted submission data
         const storageResult = await storageService.storeSubmission(formData, pdfBuffer);
@@ -113,20 +112,16 @@ router.post('/submit', validateConsentForm, async (req, res) => {
             expiresIn: '24h'
         });
 
-        // Send notification to admin (optional, won't fail if not configured)
+        // Send notification to admin (optional)
         try {
             await emailService.sendNotificationToAdmin(formData, pdfBuffer);
         } catch (adminError) {
-            console.warn('⚠️  Admin notification failed:', adminError.message);
+            console.warn('  Admin notification failed:', adminError.message);
         }
 
-        // Record successful submission for brute force protection
         if (req.bruteForceTracking) {
             req.bruteForceTracking.recordSuccess();
         }
-
-        // Log successful submission
-        console.log(`✅ Consent form processed successfully for ${formData.email} (ID: ${storageResult.submissionId})`);
 
         // Return success response with secure download link
         res.json({
@@ -147,14 +142,12 @@ router.post('/submit', validateConsentForm, async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Consent submission error:', error);
+        console.error(' Consent submission error:', error);
 
-        // Record failure for brute force protection
         if (req.bruteForceTracking) {
             req.bruteForceTracking.recordFailure();
         }
 
-        // Handle specific error types
         if (error.message.includes('Failed to store submission securely')) {
             return res.status(500).json({
                 error: 'Data storage failed',
@@ -185,6 +178,104 @@ router.post('/submit', validateConsentForm, async (req, res) => {
             message: process.env.NODE_ENV === 'production'
                 ? 'An error occurred while processing your request'
                 : error.message,
+            code: 'INTERNAL_ERROR'
+        });
+    }
+});
+
+// Submit consent form with SES evidence bundle (standalone)
+router.post('/submit-evidence', validateConsentForm, async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                error: 'Validation failed',
+                details: errors.array(),
+                code: 'VALIDATION_ERROR'
+            });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({
+                error: 'PDF file is required',
+                code: 'MISSING_PDF'
+            });
+        }
+
+        const formData = JSON.parse(req.body.formData);
+        const pdfBuffer = req.file.buffer;
+
+        // Parse evidence input (optional but recommended)
+        let evidenceInput = {};
+        if (req.body.evidence) {
+            try {
+                evidenceInput = JSON.parse(req.body.evidence);
+            } catch (e) {
+                return res.status(400).json({ error: 'Invalid evidence JSON', code: 'INVALID_EVIDENCE' });
+            }
+        }
+
+        // Basic check for OTP verification presence
+        if (!evidenceInput.otpVerification) {
+            console.warn('⚠️  Evidence submitted without OTP verification');
+        }
+
+        // Assemble and store evidence bundle alongside submission
+        const bundleResult = await evidenceBundleService.assembleAndStore(
+            formData,
+            pdfBuffer,
+            evidenceInput,
+            { ip: req.ip, userAgent: req.get('User-Agent') }
+        );
+
+        // Send email as in standard flow
+        const emailResult = await emailService.sendConsentForm(formData, pdfBuffer);
+
+        // Generate download token
+        const downloadToken = tokenService.generateDownloadToken(bundleResult.submissionId, {
+            ip: req.ip,
+            userAgent: req.get('User-Agent'),
+            maxDownloads: 3,
+            expiresIn: '24h'
+        });
+
+        // Optional admin notification
+        try {
+            await emailService.sendNotificationToAdmin(formData, pdfBuffer);
+        } catch (adminError) {
+            console.warn('⚠️  Admin notification failed:', adminError.message);
+        }
+
+        if (req.bruteForceTracking) {
+            req.bruteForceTracking.recordSuccess();
+        }
+
+        res.json({
+            success: true,
+            message: 'Consent with evidence submitted successfully',
+            data: {
+                submissionId: bundleResult.submissionId,
+                messageId: emailResult.messageId,
+                recipient: emailResult.recipient,
+                timestamp: emailResult.timestamp,
+                patientName: formData.patientName,
+                role: formData.role,
+                downloadToken: downloadToken.token,
+                downloadUrl: `/api/download/file?token=${downloadToken.token}`,
+                downloadExpiresAt: downloadToken.expiresAt,
+                retentionExpiresAt: (await storageService.getSubmissionMetadata(bundleResult.submissionId)).retention.expiresAt,
+                evidence: bundleResult.evidence
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Consent evidence submission error:', error);
+        if (req.bruteForceTracking) {
+            req.bruteForceTracking.recordFailure();
+        }
+        res.status(500).json({
+            error: 'Internal server error',
+            message: process.env.NODE_ENV === 'production' ? 'An error occurred while processing your request' : error.message,
             code: 'INTERNAL_ERROR'
         });
     }

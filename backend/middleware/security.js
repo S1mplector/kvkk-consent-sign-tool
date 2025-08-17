@@ -81,7 +81,13 @@ class SecurityMiddleware {
             const skipPaths = [
                 '/api/health',
                 '/api/config',
-                '/api/csrf-token' // Allow fetching CSRF token without having one
+                '/api/csrf-token', // Allow fetching CSRF token without having one
+                // OTP endpoints (stateless, may be called before CSRF is established)
+                '/api/otp/request',
+                '/api/otp/verify',
+                // Multipart consent submissions (handled behind proxy; CSRF incompatible with multipart in our setup)
+                '/api/consent/submit',
+                '/api/consent/submit-evidence'
             ];
             
             // Check both relative and full paths

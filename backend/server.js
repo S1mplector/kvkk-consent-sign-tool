@@ -20,6 +20,7 @@ const securityMiddleware = require('./middleware/security');
 const consentRoutes = require('./routes/consent');
 const emailRoutes = require('./routes/email');
 const downloadRoutes = require('./routes/download');
+const otpRoutes = require('./routes/otp');
 
 // Import services
 const emailService = require('./services/emailService');
@@ -57,6 +58,10 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
+// Body parsing middleware (must come before sanitization)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
 // Rate limiting and brute force protection
 app.use('/api/', security.generalRateLimit);
 app.use('/api/', security.slowDown);
@@ -68,10 +73,6 @@ app.use(security.xssProtection);
 
 // Request logging
 app.use(security.requestLogger);
-
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Configure multer for file uploads with enhanced security
 const storage = multer.memoryStorage();
@@ -89,6 +90,12 @@ const upload = multer({
             cb(new Error('Only PDF files are allowed'), false);
         }
     }
+});
+
+// Temporary direct OTP ping for diagnostics (bypasses router)
+app.get('/api/otp/ping2', (req, res) => {
+    console.log('🔔 [/api/otp/ping2] hit');
+    res.json({ ok: true, route: 'otp-direct', timestamp: new Date().toISOString() });
 });
 
 // File upload security middleware
@@ -179,6 +186,20 @@ app.get('/api/csrf-token', (req, res, next) => {
 // Note: CSRF protection is disabled for multipart form submissions due to proxy compatibility issues
 // Other security measures (rate limiting, input validation, session management) remain in place
 app.use('/api/consent', security.submissionRateLimit, upload.single('pdf'), security.inputValidation.validateFormStructure, security.inputValidation.checkValidationResults, consentRoutes);
+
+// Pre-router logger for OTP to diagnose middleware flow
+app.use('/api/otp', (req, res, next) => {
+    console.log('🔎 OTP pre-router:', req.method, req.path);
+    next();
+});
+
+// Additional in-prefix ping to test mounting
+app.get('/api/otp/ping3', (req, res) => {
+    console.log('🔔 [/api/otp/ping3] hit');
+    res.json({ ok: true, route: 'otp-prefix', timestamp: new Date().toISOString() });
+});
+
+app.use('/api/otp', otpRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/download', downloadRoutes);
 
